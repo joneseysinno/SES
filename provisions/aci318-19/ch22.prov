@@ -1,0 +1,8 @@
+# ACI 318-19 Chapter 22 — placeholder provisions (ses-provision-dsl.md §5.7)
+#
+# provision "ACI318-19 22.4" {
+#   kind: procedure
+#   title: "P-M interaction; outputs derived.c"
+#   # Full procedure deferred — engine procedure, not DSL-expressed iteration.
+#   level: rational
+# }

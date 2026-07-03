@@ -1,0 +1,31 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/ses-engineer",
+    "crates/ses-adapter",
+    "crates/ses-analysis",
+    "crates/ses-provision",
+    "crates/ses-dioxus",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+authors = ["Jonesey's Innovation"]
+
+[workspace.dependencies]
+adele-ring = "0.1.1"
+infinite-db = "0.4.0"
+ses-engineer = { path = "crates/ses-engineer" }
+ses-adapter = { path = "crates/ses-adapter" }
+ses-analysis = { path = "crates/ses-analysis" }
+ses-provision = { path = "crates/ses-provision" }
+bincode = { version = "2", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+thiserror = "1"
+dioxus = { version = "0.7", features = ["desktop", "router"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"

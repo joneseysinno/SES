@@ -1,0 +1,11 @@
+# ACI 318-19 Chapter 11 — placeholder provisions (ses-provision-dsl.md §5)
+#
+# provision "ACI318-19 11.1.x" {
+#   kind: routing
+#   title: "Walls in the SFRS, SDC D–F, designed per Chapter 18"
+#   gate: element.kind == special_wall and project.sdc in {D, E, F}
+#   route_to: chapter("ACI318-19", 18)
+#   narrative: "Wall participates in the seismic-force-resisting system in
+#               SDC {project.sdc}; special-wall provisions of Ch. 18 apply."
+#   level: rational
+# }

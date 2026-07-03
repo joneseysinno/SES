@@ -1,0 +1,18 @@
+[package]
+name = "ses-dioxus"
+description = "Structural Engineering Solutions — Dioxus desktop application"
+publish = false
+edition.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "ses-dioxus"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+ses-adapter = { workspace = true }
+ses-analysis = { workspace = true }
+dioxus = { workspace = true }
