@@ -1,4 +1,4 @@
-use ses_core::Dim;
+use ses_engineer::Dim;
 
 /// Named fact from the pipeline facts registry (ses-code-pipeline §4).
 #[derive(Debug, Clone, PartialEq, Eq)]

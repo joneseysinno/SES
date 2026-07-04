@@ -11,6 +11,31 @@ pub const SPACE_PROVISIONS: SpaceId = SpaceId(8);
 pub const SPACE_RELATIONS: SpaceId = SpaceId(9);
 pub const SPACE_UNITS: SpaceId = SpaceId(10);
 
+pub const SPACE_NAME_PROJECTS: &str = "projects";
+pub const SPACE_NAME_ELEMENTS: &str = "elements";
+pub const SPACE_NAME_MATERIALS: &str = "materials";
+pub const SPACE_NAME_DEMANDS: &str = "demands";
+pub const SPACE_NAME_ANALYSES: &str = "analyses";
+pub const SPACE_NAME_CHECK_RESULTS: &str = "check_results";
+pub const SPACE_NAME_CODES: &str = "codes";
+pub const SPACE_NAME_PROVISIONS: &str = "provisions";
+pub const SPACE_NAME_RELATIONS: &str = "relations";
+pub const SPACE_NAME_UNITS: &str = "units";
+
+/// Snake_case space registration names (ses-vocabulary §4).
+pub const ALL_SPACE_NAMES: &[&str] = &[
+    SPACE_NAME_PROJECTS,
+    SPACE_NAME_ELEMENTS,
+    SPACE_NAME_MATERIALS,
+    SPACE_NAME_DEMANDS,
+    SPACE_NAME_ANALYSES,
+    SPACE_NAME_CHECK_RESULTS,
+    SPACE_NAME_CODES,
+    SPACE_NAME_PROVISIONS,
+    SPACE_NAME_RELATIONS,
+    SPACE_NAME_UNITS,
+];
+
 pub const SPACE_PROJECTS_DIMS: u8 = 1;
 pub const SPACE_ELEMENTS_DIMS: u8 = 2;
 pub const SPACE_MATERIALS_DIMS: u8 = 2;

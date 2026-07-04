@@ -13,3 +13,8 @@ ses-core = { workspace = true }
 adele-ring = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+paste = "1"
+proptest = "1"
+trybuild = "1"

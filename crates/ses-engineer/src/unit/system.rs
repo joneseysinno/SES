@@ -1,10 +1,6 @@
-pub mod registry;
-
 use serde::{Deserialize, Serialize};
 
-pub use registry::{convert_quantity, UnitRegistry};
-pub use ses_core::UnitId;
-
+/// Unit measurement system.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum UnitSystem {
     #[default]

@@ -1,43 +1,47 @@
 use serde::{Deserialize, Serialize};
+use ses_core::testimony::{Testimony, TestimonyKind};
+use ses_core::versioned::{Genesis, Root, Versioned};
 use ses_engineer::Quantity;
 
-use crate::codec::SesPayload;
-
+/// Material property bundle (ses-vocabulary §2).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaterialKind {
+    /// Normal-weight concrete.
     Concrete {
+        /// Compressive strength `f'c`.
         fc: Quantity,
+        /// Lightweight factor λ.
         lambda: Quantity,
+        /// Unit weight.
         wc: Quantity,
     },
+    /// Reinforcing steel.
     Rebar {
+        /// Yield strength.
         fy: Quantity,
+        /// Ultimate strength.
         fu: Quantity,
+        /// Grade label.
         grade: String,
     },
 }
 
-impl Default for MaterialKind {
-    fn default() -> Self {
-        let q = Quantity::new(
-            ses_engineer::Rational::one(),
-            ses_engineer::UnitId(0),
-            "",
-        );
-        Self::Concrete {
-            fc: q.clone(),
-            lambda: q.clone(),
-            wc: q,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+/// Material record in the `materials` space.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Material {
+    /// Property bundle.
     pub kind: MaterialKind,
+    /// Display label.
     pub label: String,
 }
 
-impl SesPayload for Material {
-    const SCHEMA_VERSION: u8 = 1;
+impl Versioned for Material {
+    const VERSION: u8 = 1;
+    type Supersedes = Root;
+    type LineageVia = Genesis;
+}
+
+impl Testimony for Material {
+    const KIND: TestimonyKind = TestimonyKind::Authored;
+    const WITNESSES: &'static [&'static str] = &["engineer"];
 }

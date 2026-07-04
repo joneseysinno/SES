@@ -6,6 +6,6 @@ pub mod error;
 pub mod payload;
 pub mod schema;
 
-pub use catalog::build_kind_catalog;
-pub use codec::{decode_payload, encode_payload, SesPayload};
+pub use catalog::{build_kind_catalog, validate_schema_names};
+pub use codec::{SesPayload, decode_payload, encode_payload};
 pub use error::AdapterError;

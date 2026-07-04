@@ -1,6 +1,6 @@
 [package]
 name = "ses-core"
-description = "Pure-representation root types for SES — dimensions, rationals, authored grammar"
+description = "The SES constitution: testimony, versioning, provenance, decision, policy, and naming law."
 publish = false
 edition.workspace = true
 version.workspace = true
@@ -10,3 +10,4 @@ workspace = true
 
 [dev-dependencies]
 proptest = "1"
+trybuild = "1"

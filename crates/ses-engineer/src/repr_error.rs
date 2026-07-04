@@ -32,10 +32,7 @@ impl fmt::Display for DimError {
                 write!(f, "dimension exponent overflow on {axis}: {lhs} and {rhs}")
             }
             Self::Mismatch { expected, found } => {
-                write!(
-                    f,
-                    "dimensions differ: expected {expected}, found {found}"
-                )
+                write!(f, "dimensions differ: expected {expected}, found {found}")
             }
         }
     }

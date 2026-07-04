@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use ses_core::Dim;
-
-use crate::serde_impl::WireRational;
+use crate::Dim;
+use crate::Rational;
 
 /// Fact reference from the pipeline facts registry, e.g. `dem.Vu`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -33,7 +32,7 @@ pub enum CmpOp {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Expr {
     Quantity {
-        value: WireRational,
+        value: Rational,
         unit: Option<String>,
     },
     Fact(FactRef),
@@ -52,13 +51,13 @@ pub enum Expr {
     Max(Vec<Expr>),
     Piecewise {
         on: Box<Expr>,
-        arms: Vec<(CmpOp, WireRational, Expr)>,
+        arms: Vec<(CmpOp, Rational, Expr)>,
         otherwise: Option<Box<Expr>>,
     },
     Table {
         key: Box<Expr>,
         key2: Option<Box<Expr>>,
-        rows: Vec<(WireRational, WireRational, Expr)>,
+        rows: Vec<(Rational, Rational, Expr)>,
     },
 }
 
