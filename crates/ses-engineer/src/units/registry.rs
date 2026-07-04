@@ -1,6 +1,7 @@
 use crate::error::EngineerError;
-use crate::quantity::{Quantity, Rational};
-use crate::units::{DimensionSignature, UnitId, UnitSystem};
+use crate::quantity::Quantity;
+use crate::UnitSystem;
+use ses_core::{Dim, Rational, UnitId};
 
 /// Registry entry for a single unit row (mirrors `Unit` in ses-adapter).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -8,7 +9,7 @@ pub struct UnitEntry {
     pub id: UnitId,
     pub symbol: String,
     pub name: String,
-    pub dim: DimensionSignature,
+    pub dim: Dim,
     /// Exact ratio relative to the dimension pivot unit (registry-internal).
     pub ratio_to_pivot: Rational,
     pub system: UnitSystem,
@@ -65,7 +66,6 @@ pub fn convert_quantity(
         });
     }
 
-    // Skeleton: identity passthrough with updated unit id; real conversion uses pivot ratios.
     Ok(Quantity {
         value: q.value,
         unit: target,

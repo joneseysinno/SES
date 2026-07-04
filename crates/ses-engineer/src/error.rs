@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::units::UnitId;
+use ses_core::{Dim, UnitId};
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum EngineerError {
@@ -14,5 +14,8 @@ pub enum EngineerError {
     RegistryNotInitialized,
 
     #[error("dimension mismatch: expected {expected}, found {found}")]
-    DimensionMismatch { expected: String, found: String },
+    DimensionMismatch {
+        expected: Dim,
+        found: Dim,
+    },
 }

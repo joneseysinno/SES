@@ -1,10 +1,10 @@
-use ses_engineer::units::DimensionSignature;
+use ses_core::Dim;
 
 /// Named fact from the pipeline facts registry (ses-code-pipeline §4).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FactDefinition {
     pub name: &'static str,
-    pub dimension: Option<DimensionSignature>,
+    pub dimension: Option<Dim>,
     pub source: &'static str,
 }
 
@@ -36,62 +36,62 @@ static FACT_CATALOG: &[FactDefinition] = &[
     },
     FactDefinition {
         name: FACT_WALL_LW,
-        dimension: Some(DimensionSignature::length()),
+        dimension: Some(Dim::LENGTH),
         source: "Element",
     },
     FactDefinition {
         name: FACT_WALL_HW,
-        dimension: Some(DimensionSignature::length()),
+        dimension: Some(Dim::LENGTH),
         source: "Element",
     },
     FactDefinition {
         name: FACT_WALL_TW,
-        dimension: Some(DimensionSignature::length()),
+        dimension: Some(Dim::LENGTH),
         source: "Element",
     },
     FactDefinition {
         name: FACT_WALL_HW_OVER_LW,
-        dimension: Some(DimensionSignature::dimensionless()),
+        dimension: Some(Dim::DIMENSIONLESS),
         source: "derived (procedure)",
     },
     FactDefinition {
         name: FACT_CONC_FC,
-        dimension: Some(DimensionSignature::stress()),
+        dimension: Some(Dim::STRESS),
         source: "Material",
     },
     FactDefinition {
         name: FACT_CONC_LAMBDA,
-        dimension: Some(DimensionSignature::dimensionless()),
+        dimension: Some(Dim::DIMENSIONLESS),
         source: "Material",
     },
     FactDefinition {
         name: FACT_STEEL_FY,
-        dimension: Some(DimensionSignature::stress()),
+        dimension: Some(Dim::STRESS),
         source: "Material",
     },
     FactDefinition {
         name: FACT_DEM_PU,
-        dimension: Some(DimensionSignature::force()),
+        dimension: Some(Dim::FORCE),
         source: "Demand",
     },
     FactDefinition {
         name: FACT_DEM_VU,
-        dimension: Some(DimensionSignature::force()),
+        dimension: Some(Dim::FORCE),
         source: "Demand",
     },
     FactDefinition {
         name: FACT_DEM_MU,
-        dimension: Some(DimensionSignature::moment()),
+        dimension: Some(Dim::MOMENT),
         source: "Demand",
     },
     FactDefinition {
         name: FACT_DEM_DELTA_U,
-        dimension: Some(DimensionSignature::length()),
+        dimension: Some(Dim::LENGTH),
         source: "Demand",
     },
     FactDefinition {
         name: FACT_DEM_HSX,
-        dimension: Some(DimensionSignature::length()),
+        dimension: Some(Dim::LENGTH),
         source: "Demand",
     },
 ];

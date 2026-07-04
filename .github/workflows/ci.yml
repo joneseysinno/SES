@@ -23,6 +23,12 @@ jobs:
       - name: Cache cargo
         uses: swatinem/rust-cache@v2
 
+      - name: Verify ses-core has zero runtime deps
+        run: |
+          deps=$(cargo tree -e normal -p ses-core --depth 1)
+          echo "$deps"
+          echo "$deps" | grep -v "ses-core v" | grep -v "^$" && exit 1 || true
+
       - name: Format
         run: cargo fmt --all -- --check
 

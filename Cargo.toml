@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+    "crates/ses-core",
     "crates/ses-engineer",
     "crates/ses-adapter",
     "crates/ses-analysis",
@@ -18,6 +19,7 @@ authors = ["Jonesey's Innovation"]
 [workspace.dependencies]
 adele-ring = "0.1.1"
 infinite-db = "0.4.0"
+ses-core = { path = "crates/ses-core" }
 ses-engineer = { path = "crates/ses-engineer" }
 ses-adapter = { path = "crates/ses-adapter" }
 ses-analysis = { path = "crates/ses-analysis" }

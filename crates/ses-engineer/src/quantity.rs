@@ -1,28 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-use crate::units::UnitId;
-
-/// Exact rational value stored as reduced num/den pair.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
-pub struct Rational {
-    pub num: i64,
-    pub den: i64,
-}
-
-impl Rational {
-    pub const fn new(num: i64, den: i64) -> Self {
-        Self { num, den }
-    }
-
-    pub const fn one() -> Self {
-        Self { num: 1, den: 1 }
-    }
-}
+use crate::serde_impl;
+use ses_core::{Rational, UnitId};
 
 /// Physical value stored in its authored unit — no canonical conversion at write time.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Quantity {
+    #[serde(with = "serde_impl::rational")]
     pub value: Rational,
+    #[serde(with = "serde_impl::unit_id")]
     pub unit: UnitId,
     /// Verbatim input testimony, e.g. `"24 ft"`, `"3 × 8 ft"`.
     pub authored: String,

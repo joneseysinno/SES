@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::quantity::Rational;
-use crate::units::DimensionSignature;
+use ses_core::Dim;
+
+use crate::serde_impl::WireRational;
 
 /// Fact reference from the pipeline facts registry, e.g. `dem.Vu`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -32,7 +33,7 @@ pub enum CmpOp {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Expr {
     Quantity {
-        value: Rational,
+        value: WireRational,
         unit: Option<String>,
     },
     Fact(FactRef),
@@ -51,13 +52,13 @@ pub enum Expr {
     Max(Vec<Expr>),
     Piecewise {
         on: Box<Expr>,
-        arms: Vec<(CmpOp, Rational, Expr)>,
+        arms: Vec<(CmpOp, WireRational, Expr)>,
         otherwise: Option<Box<Expr>>,
     },
     Table {
         key: Box<Expr>,
         key2: Option<Box<Expr>>,
-        rows: Vec<(Rational, Rational, Expr)>,
+        rows: Vec<(WireRational, WireRational, Expr)>,
     },
 }
 
@@ -79,5 +80,5 @@ pub enum Predicate {
 }
 
 /// Optional dimension metadata attached during provision compilation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct ExprDimension(pub Option<DimensionSignature>);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ExprDimension(pub Option<Dim>);

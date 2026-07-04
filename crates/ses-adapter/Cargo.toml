@@ -9,6 +9,7 @@ version.workspace = true
 workspace = true
 
 [dependencies]
+ses-core = { workspace = true }
 ses-engineer = { workspace = true }
 infinite-db = { workspace = true }
 bincode = { workspace = true }
