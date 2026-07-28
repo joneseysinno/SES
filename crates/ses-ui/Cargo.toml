@@ -1,0 +1,22 @@
+[package]
+name = "ses-ui"
+description = "SES reusable Dioxus UI — Screen, Workspace, Page, Pod, I/O"
+publish = false
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+ses-shell = { workspace = true }
+ses-modules = { workspace = true }
+dioxus = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[features]
+default = []
+desktop = ["dioxus/desktop"]
+web = ["dioxus/web"]

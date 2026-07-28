@@ -1,0 +1,104 @@
+/* SES chrome — top bar, brand, app menu ribbon */
+
+.ses-chrome {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ses-top-bar {
+  display: flex;
+  align-items: center;
+  height: var(--ses-topbar-h);
+  min-height: var(--ses-topbar-h);
+  background: var(--ses-header);
+  border-bottom: 1px solid var(--ses-border);
+  padding: 0 8px;
+  gap: 8px;
+  user-select: none;
+}
+
+.ses-brand {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ses-accent);
+  margin-right: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.ses-brand:hover,
+.ses-brand.ses-active {
+  border-color: var(--ses-accent);
+  background: rgba(86, 128, 194, 0.15);
+  color: var(--ses-accent-hover);
+}
+
+.ses-app-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--ses-ribbon-h);
+  min-height: var(--ses-ribbon-h);
+  background: var(--ses-bg-raised);
+  border-bottom: 1px solid var(--ses-border);
+  padding: 0 8px;
+  user-select: none;
+}
+
+.ses-app-ribbon-item {
+  position: relative;
+}
+
+.ses-app-ribbon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 4px 10px;
+  color: var(--ses-text);
+}
+
+.ses-app-ribbon-btn:hover,
+.ses-app-ribbon-btn.ses-open {
+  background: var(--ses-header);
+  border-color: var(--ses-border);
+}
+
+.ses-app-ribbon-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  min-width: 160px;
+  margin-top: 2px;
+  padding: 4px 0;
+  background: var(--ses-bg-raised);
+  border: 1px solid var(--ses-border);
+  border-radius: 3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.ses-app-ribbon-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 6px 12px;
+  color: var(--ses-text);
+}
+
+.ses-app-ribbon-menu button:hover {
+  background: rgba(86, 128, 194, 0.25);
+  border: none;
+}
+
+.ses-app-ribbon-menu .ses-menu-sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--ses-border);
+}

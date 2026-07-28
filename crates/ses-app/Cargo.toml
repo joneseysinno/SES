@@ -1,0 +1,30 @@
+[package]
+name = "ses-app"
+description = "SES — Structural Engineering Solutions application"
+publish = false
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "ses"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+ses-shell = { workspace = true }
+ses-modules = { workspace = true }
+ses-ui = { workspace = true }
+dioxus = { workspace = true }
+infinite-db = { workspace = true, optional = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+bincode = { workspace = true }
+thiserror = { workspace = true }
+
+[features]
+default = ["desktop"]
+desktop = ["dioxus/desktop", "ses-ui/desktop", "dep:infinite-db"]
+web = ["dioxus/web", "ses-ui/web"]

@@ -1,0 +1,104 @@
+/* SES pods — View, Outliner, Properties, Calc, etc. */
+
+.ses-pod {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+}
+
+.ses-pod-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ses-text-dim);
+  margin-bottom: 8px;
+}
+
+.ses-view-pod {
+  background:
+    linear-gradient(rgba(86, 128, 194, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(86, 128, 194, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-color: #181818;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-theme="light"] .ses-view-pod {
+  background-color: #fafafa;
+}
+
+.ses-view-label {
+  color: var(--ses-text-dim);
+  border: 1px dashed var(--ses-border);
+  padding: 12px 20px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ses-bg) 85%, transparent);
+}
+
+.ses-outliner-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ses-outliner-tree ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 14px;
+}
+
+.ses-outliner-item {
+  padding: 2px 4px;
+  border-radius: 2px;
+  cursor: default;
+}
+
+.ses-outliner-item:hover {
+  background: var(--ses-bg-raised);
+}
+
+.ses-outliner-item.ses-selected {
+  background: rgba(86, 128, 194, 0.25);
+}
+
+.ses-props-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ses-props-table th,
+.ses-props-table td {
+  text-align: left;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--ses-border);
+  font-weight: 400;
+}
+
+.ses-props-table th {
+  color: var(--ses-text-dim);
+  width: 40%;
+}
+
+.ses-calc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.ses-calc-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ses-text-dim);
+  font-size: 11px;
+}
+
+.ses-calc-form .ses-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}

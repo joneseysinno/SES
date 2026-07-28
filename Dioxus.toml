@@ -1,0 +1,6 @@
+[application]
+name = "ses"
+default_platform = "desktop"
+
+[web.app]
+title = "SES — Structural Engineering Solutions"

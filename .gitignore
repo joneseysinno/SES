@@ -1,0 +1,7 @@
+/target/
+dist/
+.dioxus/
+**/*.rs.bk
+.DS_Store
+*.pdb
+ses-data/

@@ -1,0 +1,133 @@
+/* SES — global theme, tokens, shared controls */
+
+:root {
+  --ses-bg: #1e1e1e;
+  --ses-bg-raised: #2a2a2a;
+  --ses-header: #303030;
+  --ses-border: #3d3d3d;
+  --ses-text: #e6e6e6;
+  --ses-text-dim: #9a9a9a;
+  --ses-accent: #5680c2;
+  --ses-accent-hover: #6a94d4;
+  --ses-danger: #c25555;
+  --ses-topbar-h: 36px;
+  --ses-statusbar-h: 24px;
+  --ses-page-header-h: 28px;
+  --ses-split-size: 4px;
+  --ses-ribbon-h: 32px;
+  --ses-font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --ses-font-mono: "Cascadia Code", "Consolas", monospace;
+}
+
+[data-theme="light"] {
+  --ses-bg: #f3f3f3;
+  --ses-bg-raised: #ffffff;
+  --ses-header: #e8e8e8;
+  --ses-border: #c8c8c8;
+  --ses-text: #1a1a1a;
+  --ses-text-dim: #666666;
+  --ses-accent: #3a6fb0;
+  --ses-accent-hover: #4a82c4;
+  --ses-danger: #c25555;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#main {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ses-bg);
+  color: var(--ses-text);
+  font-family: var(--ses-font);
+  font-size: 13px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: var(--ses-bg-raised);
+  border: 1px solid var(--ses-border);
+  border-radius: 3px;
+  padding: 2px 8px;
+  color: var(--ses-text);
+}
+
+button:hover {
+  border-color: var(--ses-accent);
+  background: var(--ses-header);
+}
+
+button.ses-active {
+  background: var(--ses-accent);
+  border-color: var(--ses-accent);
+  color: #fff;
+}
+
+button.ses-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+button.ses-ghost:hover {
+  background: var(--ses-bg-raised);
+  border-color: var(--ses-border);
+}
+
+input,
+select,
+textarea {
+  background: var(--ses-bg);
+  border: 1px solid var(--ses-border);
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 1px solid var(--ses-accent);
+  border-color: var(--ses-accent);
+}
+
+.ses-muted {
+  color: var(--ses-text-dim);
+}
+
+/* —— Screen shell —— */
+
+.ses-screen {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--ses-bg);
+}
+
+.ses-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--ses-statusbar-h);
+  min-height: var(--ses-statusbar-h);
+  background: var(--ses-header);
+  border-top: 1px solid var(--ses-border);
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--ses-text-dim);
+}

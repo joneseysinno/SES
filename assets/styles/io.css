@@ -1,0 +1,60 @@
+/* SES I/O containers */
+
+.ses-io-panel {
+  border-top: 1px solid var(--ses-border);
+  background: var(--ses-bg-raised);
+  min-height: 96px;
+  max-height: 40%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.ses-io-side .ses-io-panel {
+  border-top: none;
+  border-left: 1px solid var(--ses-border);
+  max-height: none;
+  height: 100%;
+}
+
+.ses-io-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--ses-header);
+  border-bottom: 1px solid var(--ses-border);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ses-text-dim);
+}
+
+.ses-io-body {
+  padding: 8px;
+  flex: 1;
+  overflow: auto;
+}
+
+.ses-binding-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ses-accent);
+  display: inline-block;
+}
+
+.ses-binding-dot.ses-unbound {
+  background: var(--ses-border);
+}
+
+.ses-flow-value {
+  font-family: var(--ses-font-mono);
+  font-size: 12px;
+  padding: 6px 8px;
+  background: var(--ses-bg);
+  border: 1px solid var(--ses-border);
+  border-radius: 3px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
