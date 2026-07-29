@@ -162,7 +162,27 @@ pub fn join_split_at(root: &mut PageNode, path: &[usize], discard_first: bool) -
 
 pub fn set_leaf_pod(root: &mut PageNode, leaf_id: LeafId, kind: PodKind, module_id: &str) -> bool {
     if let Some(leaf) = root.find_leaf_mut(leaf_id) {
+        // Preserve title / collapse chrome when swapping the hosted kind.
+        let title = leaf.pod.title.clone();
+        let collapsible = leaf.pod.collapsible;
+        let collapsed = leaf.pod.collapsed;
         leaf.pod = PodDescriptor::new(kind, module_id);
+        leaf.pod.title = title;
+        leaf.pod.collapsible = collapsible;
+        leaf.pod.collapsed = collapsed;
+        true
+    } else {
+        false
+    }
+}
+
+/// Expand or collapse a collapsible leaf to a title strip.
+pub fn set_leaf_collapsed(root: &mut PageNode, leaf_id: LeafId, collapsed: bool) -> bool {
+    if let Some(leaf) = root.find_leaf_mut(leaf_id) {
+        if !leaf.pod.collapsible {
+            return false;
+        }
+        leaf.pod.collapsed = collapsed;
         true
     } else {
         false
@@ -421,5 +441,24 @@ mod tests {
         assert_eq!(scroll_fraction(50.0, 200.0, 100.0), 0.5);
         assert_eq!(scroll_fraction(100.0, 200.0, 100.0), 1.0);
         assert_eq!(scroll_fraction(-10.0, 200.0, 100.0), 0.0);
+    }
+
+    #[test]
+    fn set_leaf_collapsed_requires_collapsible() {
+        let mut root = sample_leaf(PodKind::View);
+        let id = match &root {
+            PageNode::Leaf(l) => l.id,
+            _ => panic!(),
+        };
+        assert!(!set_leaf_collapsed(&mut root, id, true));
+
+        if let PageNode::Leaf(leaf) = &mut root {
+            leaf.pod = leaf.pod.clone().collapsible();
+        }
+        assert!(set_leaf_collapsed(&mut root, id, true));
+        assert!(matches!(
+            &root,
+            PageNode::Leaf(l) if l.pod.collapsed
+        ));
     }
 }

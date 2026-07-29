@@ -1,4 +1,4 @@
-/* SES I/O containers */
+/* SES I/O containers + field widgets */
 
 .ses-io-panel {
   border-top: 1px solid var(--ses-border);
@@ -57,4 +57,114 @@
   border-radius: 3px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* ---- Field widgets (centralized IO library) ---- */
+
+.ses-io-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ses-io-field-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.9fr) minmax(0, 1.4fr) auto auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.ses-io-field-label {
+  font-size: 11px;
+  color: var(--ses-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ses-io-field-control {
+  width: 100%;
+  min-width: 0;
+  font-family: var(--ses-font-mono);
+  font-size: 12px;
+}
+
+.ses-io-field-units {
+  font-size: 11px;
+  color: var(--ses-text-dim);
+  font-family: var(--ses-font-mono);
+  min-width: 2.5em;
+  text-align: left;
+}
+
+.ses-io-field-error {
+  font-size: 10px;
+  color: var(--ses-danger);
+}
+
+.ses-io-field.ses-invalid .ses-io-field-control {
+  border-color: var(--ses-danger);
+}
+
+.ses-io-info-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  line-height: 1;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.ses-io-info-btn.ses-active {
+  color: #fff;
+}
+
+/* Engineer card */
+
+.ses-io-engineer {
+  background: var(--ses-bg-raised);
+  border: 1px solid var(--ses-border);
+  border-radius: 3px;
+  padding: 6px 8px;
+}
+
+.ses-io-engineer.ses-expanded {
+  border-color: color-mix(in srgb, var(--ses-accent) 55%, var(--ses-border));
+}
+
+.ses-io-engineer-info {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--ses-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ses-text-dim);
+}
+
+.ses-io-engineer-desc {
+  margin: 0;
+  color: var(--ses-text);
+  line-height: 1.35;
+}
+
+.ses-io-engineer-section-title {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ses-text-dim);
+  margin-bottom: 2px;
+}
+
+.ses-io-engineer-section ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.ses-io-engineer-section li {
+  margin: 1px 0;
+  font-family: var(--ses-font-mono);
+  font-size: 11px;
 }

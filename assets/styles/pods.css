@@ -102,3 +102,17 @@
   gap: 8px;
   align-items: flex-end;
 }
+
+.ses-pod-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 420px;
+}
+
+.ses-pod-fields .ses-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}

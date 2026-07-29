@@ -10,7 +10,8 @@ use dioxus::prelude::*;
 use ses_shell::{
     Axis, IoPlacement, LandmarkDef, LandmarkIcon, LandmarkId, PageLeaf, PodKind,
     ops::{
-        add_landmark, maximize_leaf, remove_landmark, restore_layout, set_leaf_pod, split_leaf,
+        add_landmark, maximize_leaf, remove_landmark, restore_layout, set_leaf_collapsed,
+        set_leaf_pod, split_leaf,
     },
 };
 
@@ -35,6 +36,9 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
     let leaf_id = leaf.id;
     let kind = leaf.pod.kind;
     let module_id = leaf.pod.module_id.clone();
+    let pod_title = leaf.pod.title.clone();
+    let collapsible = leaf.pod.collapsible;
+    let collapsed = leaf.pod.collapsed && collapsible;
     let io = leaf.io.clone();
     let channel = io.channel.clone().unwrap_or_else(|| "calc.result".into());
 
@@ -75,6 +79,9 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
 
     let leaf_class = {
         let mut c = "ses-page-leaf".to_string();
+        if collapsed {
+            c.push_str(" ses-collapsed");
+        }
         if in_select_mode {
             c.push_str(" ses-landmark-selecting");
         }
@@ -160,6 +167,9 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
                         }
                     }
                 }
+                if let Some(title) = pod_title.clone() {
+                    span { class: "ses-page-header-title", "{title}" }
+                }
                 span { class: "ses-muted", style: "font-size: 10px;",
                     "{module_id}"
                 }
@@ -222,6 +232,18 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
                             }
                         },
                         if is_maximized { "▾" } else { "▴" }
+                    }
+                    if collapsible {
+                        button {
+                            class: "ses-ghost",
+                            title: if collapsed { "Expand" } else { "Collapse" },
+                            onclick: move |_| {
+                                if let Some(ws) = shell.write().active_mut() {
+                                    set_leaf_collapsed(&mut ws.layout, leaf_id, !collapsed);
+                                }
+                            },
+                            if collapsed { "▶" } else { "▼" }
+                        }
                     }
                 }
 
@@ -418,13 +440,15 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
                     MenuMode::Closed => rsx! {}
                 }
             }
-            div { class: "{body_class}",
-                PodHost { kind, channel: channel.clone() }
-                if io.show_input {
-                    InputContainer { channel: channel.clone() }
-                }
-                if io.show_output {
-                    OutputContainer { channel: channel.clone() }
+            if !collapsed {
+                div { class: "{body_class}",
+                    PodHost { kind, channel: channel.clone() }
+                    if io.show_input {
+                        InputContainer { channel: channel.clone() }
+                    }
+                    if io.show_output {
+                        OutputContainer { channel: channel.clone() }
+                    }
                 }
             }
         }

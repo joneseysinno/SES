@@ -9,4 +9,8 @@ pub mod theme;
 pub mod workspace;
 
 pub use context::{FlowCtx, ModulesCtx, ShellCtx, UserCtx};
+pub use io::{
+    EngineerInfo, EngineerInput, FieldMeta, InputContainer, NumericalInput, OutputContainer,
+    TextInput,
+};
 pub use screen::Screen;

@@ -15,8 +15,12 @@ fn leaf(kind: PodKind, module: &str) -> PageNode {
     PageNode::Leaf(PageLeaf::new(pod(kind, module)))
 }
 
-fn leaf_with_io(kind: PodKind, module: &str, io: IoLayout) -> PageNode {
-    PageNode::Leaf(PageLeaf::new(pod(kind, module)).with_io(io))
+fn leaf_from(descriptor: PodDescriptor) -> PageNode {
+    PageNode::Leaf(PageLeaf::new(descriptor))
+}
+
+fn leaf_from_with_io(descriptor: PodDescriptor, io: IoLayout) -> PageNode {
+    PageNode::Leaf(PageLeaf::new(descriptor).with_io(io))
 }
 
 /// Layout workspace: 2×2 grid — View | Outliner / Properties | Calculation
@@ -31,9 +35,10 @@ fn layout_workspace() -> WorkspaceDef {
         Axis::Horizontal,
         0.5,
         leaf(PodKind::Properties, "core-ui"),
-        leaf_with_io(
-            PodKind::Calculation,
-            "analysis",
+        leaf_from_with_io(
+            pod(PodKind::Calculation, "analysis")
+                .with_title("Inputs")
+                .collapsible(),
             IoLayout::output_only("calc.result"),
         ),
     );
@@ -42,14 +47,21 @@ fn layout_workspace() -> WorkspaceDef {
     WorkspaceDef::new("Layout", root)
 }
 
-/// Analysis: View (wide left) + Calculation with I/O (right)
+/// Analysis: View (wide left) + stacked Inputs (expanded) / Checks (collapsed)
 fn analysis_workspace() -> WorkspaceDef {
-    let calc = leaf_with_io(
-        PodKind::Calculation,
-        "analysis",
+    let inputs = leaf_from_with_io(
+        pod(PodKind::Calculation, "analysis")
+            .with_title("Inputs")
+            .collapsible(),
         IoLayout::with_io("calc.result", IoPlacement::Below),
     );
-    let root = PageNode::split(Axis::Horizontal, 0.7, leaf(PodKind::View, "core-ui"), calc);
+    let checks = leaf_from(
+        pod(PodKind::Calculation, "analysis")
+            .with_title("Checks")
+            .start_collapsed(),
+    );
+    let right = PageNode::split(Axis::Vertical, 0.72, inputs, checks);
+    let root = PageNode::split(Axis::Horizontal, 0.7, leaf(PodKind::View, "core-ui"), right);
     WorkspaceDef::new("Analysis", root).with_top_bar(
         PageTopBar::new()
             .with_slot(TopBarSlot::left(TopBarSlotKind::Label {
@@ -97,5 +109,30 @@ mod tests {
         assert!(shell.workspaces[0].top_bar.is_none());
         assert!(shell.workspaces[1].top_bar.is_some());
         assert!(shell.active().is_some());
+    }
+
+    #[test]
+    fn analysis_has_collapsed_checks_pod() {
+        let shell = default_shell();
+        let analysis = &shell.workspaces[1];
+        let titles: Vec<_> = analysis
+            .layout
+            .leaf_ids()
+            .into_iter()
+            .filter_map(|id| analysis.layout.find_leaf(id))
+            .filter_map(|leaf| leaf.pod.title.as_deref())
+            .collect();
+        assert!(titles.contains(&"Inputs"));
+        assert!(titles.contains(&"Checks"));
+
+        let checks = analysis
+            .layout
+            .leaf_ids()
+            .into_iter()
+            .filter_map(|id| analysis.layout.find_leaf(id))
+            .find(|leaf| leaf.pod.title.as_deref() == Some("Checks"))
+            .expect("Checks leaf");
+        assert!(checks.pod.collapsible);
+        assert!(checks.pod.collapsed);
     }
 }

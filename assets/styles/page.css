@@ -25,6 +25,11 @@
   flex-direction: column;
 }
 
+.ses-page-pane.ses-collapsed-pane {
+  min-height: var(--ses-page-header-h);
+  overflow: visible;
+}
+
 .ses-split-handle {
   flex: 0 0 var(--ses-split-size);
   background: var(--ses-border);
@@ -107,6 +112,16 @@
   border: 1px solid var(--ses-border);
 }
 
+.ses-page-leaf.ses-collapsed {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: var(--ses-page-header-h);
+}
+
+.ses-page-leaf.ses-collapsed .ses-page-header {
+  border-bottom: none;
+}
+
 .ses-page-header {
   display: flex;
   align-items: center;
@@ -125,6 +140,15 @@
   border: none;
   padding: 2px 4px;
   font-weight: 500;
+}
+
+.ses-page-header-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ses-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ses-page-header-actions {

@@ -6,6 +6,21 @@ use dioxus::prelude::*;
 use ses_shell::{Axis, PageNode};
 use std::rc::Rc;
 
+fn leaf_is_collapsed_strip(node: &PageNode) -> bool {
+    matches!(
+        node,
+        PageNode::Leaf(leaf) if leaf.pod.collapsible && leaf.pod.collapsed
+    )
+}
+
+fn pane_flex_style(pct: f32, collapsed_strip: bool) -> String {
+    if collapsed_strip {
+        "flex: 0 0 auto; max-width: 100%; max-height: 100%;".into()
+    } else {
+        format!("flex: 1 1 {pct}%; max-width: 100%; max-height: 100%;")
+    }
+}
+
 #[component]
 pub fn PageNodeView(node: PageNode, path: Vec<usize>) -> Element {
     match node {
@@ -43,6 +58,10 @@ fn SplitNodeView(
 ) -> Element {
     let first_pct = (ratio * 100.0).round();
     let second_pct = 100.0 - first_pct;
+    let first_collapsed = leaf_is_collapsed_strip(&first);
+    let second_collapsed = leaf_is_collapsed_strip(&second);
+    let first_style = pane_flex_style(first_pct, first_collapsed);
+    let second_style = pane_flex_style(second_pct, second_collapsed);
     let mut path_first = path.clone();
     path_first.push(0);
     let mut path_second = path.clone();
@@ -87,8 +106,12 @@ fn SplitNodeView(
                 });
             },
             div {
-                class: "ses-page-pane",
-                style: "flex: 1 1 {first_pct}%; max-width: 100%; max-height: 100%;",
+                class: if first_collapsed {
+                    "ses-page-pane ses-collapsed-pane"
+                } else {
+                    "ses-page-pane"
+                },
+                style: "{first_style}",
                 PageNodeView { node: first, path: path_first }
             }
             SplitHandle {
@@ -99,8 +122,12 @@ fn SplitNodeView(
                 on_drag_start: move |_| remount(),
             }
             div {
-                class: "ses-page-pane",
-                style: "flex: 1 1 {second_pct}%; max-width: 100%; max-height: 100%;",
+                class: if second_collapsed {
+                    "ses-page-pane ses-collapsed-pane"
+                } else {
+                    "ses-page-pane"
+                },
+                style: "{second_style}",
                 PageNodeView { node: second, path: path_second }
             }
         }
