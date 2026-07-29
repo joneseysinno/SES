@@ -1,7 +1,9 @@
 //! Default workspace layouts seeded on first launch.
 
 use crate::ids::{ModuleId, reset_id_counter};
-use crate::page::{Axis, IoLayout, IoPlacement, PageLeaf, PageNode};
+use crate::page::{
+    Axis, IoLayout, IoPlacement, PageLeaf, PageNode, PageTopBar, TopBarSlot, TopBarSlotKind,
+};
 use crate::pod::{PodDescriptor, PodKind};
 use crate::workspace::{ShellState, WorkspaceDef};
 
@@ -36,6 +38,7 @@ fn layout_workspace() -> WorkspaceDef {
         ),
     );
     let root = PageNode::split(Axis::Vertical, 0.7, top, bottom);
+    // Clean default — no page top bar.
     WorkspaceDef::new("Layout", root)
 }
 
@@ -47,7 +50,16 @@ fn analysis_workspace() -> WorkspaceDef {
         IoLayout::with_io("calc.result", IoPlacement::Below),
     );
     let root = PageNode::split(Axis::Horizontal, 0.7, leaf(PodKind::View, "core-ui"), calc);
-    WorkspaceDef::new("Analysis", root)
+    WorkspaceDef::new("Analysis", root).with_top_bar(
+        PageTopBar::new()
+            .with_slot(TopBarSlot::left(TopBarSlotKind::Label {
+                text: "Analysis".into(),
+            }))
+            .with_slot(TopBarSlot::right(TopBarSlotKind::FlowDisplay {
+                channel: "calc.result".into(),
+                show_channel_name: true,
+            })),
+    )
 }
 
 /// Documentation: Outliner + Properties
@@ -82,6 +94,8 @@ mod tests {
         let shell = default_shell();
         assert_eq!(shell.workspaces.len(), 3);
         assert_eq!(shell.workspaces[0].name, "Layout");
+        assert!(shell.workspaces[0].top_bar.is_none());
+        assert!(shell.workspaces[1].top_bar.is_some());
         assert!(shell.active().is_some());
     }
 }

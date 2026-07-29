@@ -1,6 +1,7 @@
 //! Pure layout operations on page trees and workspaces.
 
 use crate::ids::LeafId;
+use crate::landmark::{LandmarkDef, LandmarkIcon, LandmarkId};
 use crate::page::{Axis, PageLeaf, PageNode};
 use crate::pod::{PodDescriptor, PodKind};
 use crate::workspace::WorkspaceDef;
@@ -197,6 +198,52 @@ pub fn effective_layout(ws: &WorkspaceDef) -> PageNode {
     ws.layout.clone()
 }
 
+/// Add a single-leaf landmark to the workspace.
+pub fn add_landmark(ws: &mut WorkspaceDef, leaf_id: LeafId, icon: LandmarkIcon) -> LandmarkId {
+    let lm = LandmarkDef::single(leaf_id, icon);
+    let id = lm.id;
+    ws.landmarks.push(lm);
+    id
+}
+
+/// Group existing landmark ids into a new group landmark, removing the originals.
+pub fn group_landmarks(
+    ws: &mut WorkspaceDef,
+    landmark_ids: &[LandmarkId],
+    icon: LandmarkIcon,
+) -> Option<LandmarkId> {
+    let leaf_ids: Vec<LeafId> = ws
+        .landmarks
+        .iter()
+        .filter(|lm| landmark_ids.contains(&lm.id))
+        .flat_map(|lm| lm.leaf_ids.clone())
+        .collect();
+    if leaf_ids.is_empty() {
+        return None;
+    }
+    ws.landmarks.retain(|lm| !landmark_ids.contains(&lm.id));
+    let group = LandmarkDef::group(leaf_ids, icon);
+    let id = group.id;
+    ws.landmarks.push(group);
+    Some(id)
+}
+
+/// Remove a landmark by id.
+pub fn remove_landmark(ws: &mut WorkspaceDef, id: LandmarkId) {
+    ws.landmarks.retain(|lm| lm.id != id);
+}
+
+/// Scroll fraction from scroll metrics: `scroll_top / (scroll_height - client_height)`.
+/// Returns 0.0 when content does not overflow.
+pub fn scroll_fraction(scroll_top: f64, scroll_height: f64, client_height: f64) -> f32 {
+    let range = scroll_height - client_height;
+    if range <= 0.0 {
+        0.0
+    } else {
+        (scroll_top / range).clamp(0.0, 1.0) as f32
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -341,5 +388,38 @@ mod tests {
         let mut root = sample_leaf(PodKind::View);
         assert!(!join_split_at(&mut root, &[], true));
         assert!(!join_split_at(&mut root, &[0], true));
+    }
+
+    #[test]
+    fn landmark_add_group_remove() {
+        let leaf_a = LeafId::new();
+        let leaf_b = LeafId::new();
+        let mut ws = WorkspaceDef::new("T", sample_leaf(PodKind::View));
+        let id_a = add_landmark(&mut ws, leaf_a, LandmarkIcon::new("A"));
+        let id_b = add_landmark(&mut ws, leaf_b, LandmarkIcon::new("B"));
+        assert_eq!(ws.landmarks.len(), 2);
+
+        let group_id =
+            group_landmarks(&mut ws, &[id_a, id_b], LandmarkIcon::new("G")).expect("group");
+        assert_eq!(ws.landmarks.len(), 1);
+        assert_eq!(ws.landmarks[0].id, group_id);
+        assert_eq!(ws.landmarks[0].leaf_ids, vec![leaf_a, leaf_b]);
+
+        remove_landmark(&mut ws, group_id);
+        assert!(ws.landmarks.is_empty());
+    }
+
+    #[test]
+    fn group_landmarks_empty_returns_none() {
+        let mut ws = WorkspaceDef::new("T", sample_leaf(PodKind::View));
+        assert!(group_landmarks(&mut ws, &[], LandmarkIcon::new("G")).is_none());
+    }
+
+    #[test]
+    fn scroll_fraction_math() {
+        assert_eq!(scroll_fraction(0.0, 100.0, 100.0), 0.0);
+        assert_eq!(scroll_fraction(50.0, 200.0, 100.0), 0.5);
+        assert_eq!(scroll_fraction(100.0, 200.0, 100.0), 1.0);
+        assert_eq!(scroll_fraction(-10.0, 200.0, 100.0), 0.0);
     }
 }

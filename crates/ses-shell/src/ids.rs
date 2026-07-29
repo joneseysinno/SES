@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 
-fn next_u64() -> u64 {
+pub(crate) fn next_u64() -> u64 {
     NEXT_ID.fetch_add(1, Ordering::Relaxed)
 }
 

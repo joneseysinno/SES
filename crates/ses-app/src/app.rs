@@ -23,6 +23,8 @@ const WORKSPACE_CSS: &str = ses_style!("workspace.css");
 const PAGE_CSS: &str = ses_style!("page.css");
 const IO_CSS: &str = ses_style!("io.css");
 const PODS_CSS: &str = ses_style!("pods.css");
+const SCROLL_BAR_CSS: &str = ses_style!("scroll_bar.css");
+const PAGE_TOP_BAR_CSS: &str = ses_style!("page_top_bar.css");
 
 #[component]
 pub fn App() -> Element {
@@ -48,6 +50,8 @@ pub fn App() -> Element {
         style { {PAGE_CSS} }
         style { {IO_CSS} }
         style { {PODS_CSS} }
+        style { {SCROLL_BAR_CSS} }
+        style { {PAGE_TOP_BAR_CSS} }
         Screen {}
     }
 }

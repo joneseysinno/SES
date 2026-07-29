@@ -1,7 +1,8 @@
 //! Workspace definitions and shell state.
 
 use crate::ids::WorkspaceId;
-use crate::page::PageNode;
+use crate::landmark::{LandmarkDef, LandmarkId};
+use crate::page::{PageNode, PageTopBar};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -14,6 +15,12 @@ pub struct WorkspaceDef {
     /// Layout snapshot taken before maximize (for restore).
     #[serde(skip)]
     pub layout_before_maximize: Option<PageNode>,
+    /// Optional sticky page top bar.
+    #[serde(default)]
+    pub top_bar: Option<PageTopBar>,
+    /// Named landmarks pinned to the page scroll bar.
+    #[serde(default)]
+    pub landmarks: Vec<LandmarkDef>,
 }
 
 impl WorkspaceDef {
@@ -24,7 +31,22 @@ impl WorkspaceDef {
             layout,
             maximized: None,
             layout_before_maximize: None,
+            top_bar: None,
+            landmarks: Vec::new(),
         }
+    }
+
+    pub fn with_top_bar(mut self, bar: PageTopBar) -> Self {
+        self.top_bar = Some(bar);
+        self
+    }
+
+    pub fn add_landmark(&mut self, lm: LandmarkDef) {
+        self.landmarks.push(lm);
+    }
+
+    pub fn remove_landmark(&mut self, id: LandmarkId) {
+        self.landmarks.retain(|lm| lm.id != id);
     }
 
     pub fn display_layout(&self) -> &PageNode {
@@ -110,6 +132,8 @@ impl ShellState {
         );
         dup.maximized = None;
         dup.layout_before_maximize = None;
+        dup.top_bar = current.top_bar.clone();
+        dup.landmarks = current.landmarks.clone();
         self.add_workspace(dup);
         true
     }

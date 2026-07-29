@@ -151,3 +151,124 @@ impl PageNode {
         }
     }
 }
+
+/// Kind of slot that can live in the page top bar.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum TopBarSlotKind {
+    /// A plain clickable button with a label. Action is identified by string
+    /// so the UI layer can dispatch it (e.g. "export", "run-all").
+    Button { label: String, action_id: String },
+
+    /// A read-only text panel. Content is a static string set by the author.
+    Label { text: String },
+
+    /// A live panel bound to a flow channel. Displays the channel's current
+    /// FlowValue, updating reactively. Optionally shows the channel name.
+    FlowDisplay {
+        channel: String,
+        show_channel_name: bool,
+    },
+
+    /// A visual separator (vertical rule).
+    Separator,
+}
+
+/// Alignment of a slot within the top bar flex row.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TopBarAlign {
+    Left,
+    Center,
+    Right,
+}
+
+/// One slot in the page top bar.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TopBarSlot {
+    pub kind: TopBarSlotKind,
+    pub align: TopBarAlign,
+}
+
+impl TopBarSlot {
+    pub fn left(kind: TopBarSlotKind) -> Self {
+        Self {
+            kind,
+            align: TopBarAlign::Left,
+        }
+    }
+
+    pub fn center(kind: TopBarSlotKind) -> Self {
+        Self {
+            kind,
+            align: TopBarAlign::Center,
+        }
+    }
+
+    pub fn right(kind: TopBarSlotKind) -> Self {
+        Self {
+            kind,
+            align: TopBarAlign::Right,
+        }
+    }
+}
+
+/// Discrete height sizes for the page top bar.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TopBarHeight {
+    /// 28px
+    Compact,
+    /// 36px
+    Standard,
+    /// 52px
+    Tall,
+}
+
+impl TopBarHeight {
+    pub fn px(self) -> u32 {
+        match self {
+            Self::Compact => 28,
+            Self::Standard => 36,
+            Self::Tall => 52,
+        }
+    }
+}
+
+/// Optional sticky top bar for a workspace page area.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PageTopBar {
+    pub visible: bool,
+    pub height: TopBarHeight,
+    pub slots: Vec<TopBarSlot>,
+}
+
+impl PageTopBar {
+    pub fn new() -> Self {
+        Self {
+            visible: true,
+            height: TopBarHeight::Standard,
+            slots: Vec::new(),
+        }
+    }
+
+    pub fn with_slot(mut self, slot: TopBarSlot) -> Self {
+        self.slots.push(slot);
+        self
+    }
+}
+
+impl Default for PageTopBar {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+mod top_bar_tests {
+    use super::TopBarHeight;
+
+    #[test]
+    fn top_bar_height_px() {
+        assert_eq!(TopBarHeight::Compact.px(), 28);
+        assert_eq!(TopBarHeight::Standard.px(), 36);
+        assert_eq!(TopBarHeight::Tall.px(), 52);
+    }
+}
