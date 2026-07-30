@@ -10,7 +10,6 @@ members = [
     "crates/ses-modules",
     "crates/ses-ui",
     "crates/ses-app",
-    "crates/ses-dioxus",
 ]
 default-members = ["crates/ses-app"]
 

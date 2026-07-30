@@ -5237,15 +5237,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ses-dioxus"
-version = "0.1.0"
-dependencies = [
- "dioxus",
- "ses-adapter",
- "ses-analysis",
-]
-
-[[package]]
 name = "ses-engineer"
 version = "0.1.0"
 dependencies = [
