@@ -57,6 +57,27 @@ impl fmt::Display for LeafId {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct PodId(pub u64);
+
+impl PodId {
+    pub fn new() -> Self {
+        Self(next_u64())
+    }
+}
+
+impl Default for PodId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl fmt::Display for PodId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "pod-{}", self.0)
+    }
+}
+
 /// Module identifier — string key for registry lookup.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ModuleId(pub String);

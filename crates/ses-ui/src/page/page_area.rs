@@ -123,13 +123,13 @@ pub fn PageArea(
             if let Some(lm) = landmarks.iter().find(|lm| lm.id == id) {
                 let positions = leaf_positions();
                 if let Some(frac) = lm
-                    .leaf_ids
+                    .leaf_ids()
                     .iter()
                     .filter_map(|lid| positions.get(lid).copied())
                     .reduce(f32::min)
                 {
                     if lm.focus_on_click {
-                        if let Some(leaf_id) = lm.leaf_ids.first().copied() {
+                        if let Some(leaf_id) = lm.leaf_ids().first().copied() {
                             if let Some(ws) = shell.write().active_mut() {
                                 maximize_leaf(ws, leaf_id);
                             }
@@ -168,13 +168,13 @@ pub fn PageArea(
                     evt.prevent_default();
                     let positions = leaf_positions();
                     if let Some(frac) = lm
-                        .leaf_ids
+                        .leaf_ids()
                         .iter()
                         .filter_map(|id| positions.get(id).copied())
                         .reduce(f32::min)
                     {
                         if lm.focus_on_click {
-                            if let Some(leaf_id) = lm.leaf_ids.first().copied() {
+                            if let Some(leaf_id) = lm.leaf_ids().first().copied() {
                                 if let Some(ws) = shell.write().active_mut() {
                                     maximize_leaf(ws, leaf_id);
                                 }

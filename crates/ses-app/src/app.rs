@@ -1,10 +1,14 @@
 //! Root App component — context providers and Screen.
 
-use crate::db::{load_or_default_shell, save_shell};
+use crate::db::{
+    bump_ids_past, load_startup_profile, load_workspaces, save_shell, save_startup_profile,
+};
 use dioxus::prelude::*;
-use ses_modules::{ModuleRegistry, UserContext};
-use ses_shell::FlowBus;
-use ses_ui::{FlowCtx, ModulesCtx, Screen, ShellCtx, UserCtx};
+use ses_modules::UserContext;
+use ses_shell::{FlowBus, ShellState, StartupProfile, factory_workspaces, resolve_startup};
+use ses_ui::{
+    FlowCtx, ModuleUiRegistry, ModulesCtx, Screen, ShellCtx, StartupCtx, UserCtx,
+};
 use std::sync::Arc;
 
 macro_rules! ses_style {
@@ -25,22 +29,59 @@ const IO_CSS: &str = ses_style!("io.css");
 const PODS_CSS: &str = ses_style!("pods.css");
 const SCROLL_BAR_CSS: &str = ses_style!("scroll_bar.css");
 const PAGE_TOP_BAR_CSS: &str = ses_style!("page_top_bar.css");
+const POD_STACK_CSS: &str = ses_style!("pod_stack.css");
+const KANBAN_CSS: &str = ses_style!("kanban.css");
+const IO_EXTENDED_CSS: &str = ses_style!("io_extended.css");
+
+#[derive(Clone)]
+struct AppInit {
+    shell: ShellState,
+    modules: Arc<ModuleUiRegistry>,
+    profile: StartupProfile,
+}
+
+fn app_init() -> AppInit {
+    let mut reg = ModuleUiRegistry::with_defaults();
+    departments::register_all_ui(&mut reg);
+    let profile = load_startup_profile();
+    let persisted = load_workspaces();
+    let factory = factory_workspaces(
+        &profile.enabled_modules,
+        reg.logical.all_factory_workspaces(),
+    );
+    let shell = resolve_startup(factory, persisted, &profile);
+    bump_ids_past(&shell);
+    AppInit {
+        shell,
+        modules: Arc::new(reg),
+        profile,
+    }
+}
 
 #[component]
 pub fn App() -> Element {
-    let shell: ShellCtx = use_signal(load_or_default_shell);
+    let init = use_hook(app_init);
+
+    let shell: ShellCtx = use_signal(|| init.shell.clone());
     let flow: FlowCtx = use_signal(FlowBus::new);
-    let modules: ModulesCtx = use_signal(|| Arc::new(ModuleRegistry::with_defaults()));
+    let modules: ModulesCtx = use_signal(|| Arc::clone(&init.modules));
     let user: UserCtx = use_signal(UserContext::dev_all_access);
+    let startup: StartupCtx = use_signal(|| init.profile.clone());
 
     use_context_provider(|| shell);
     use_context_provider(|| flow);
     use_context_provider(|| modules);
     use_context_provider(|| user);
+    use_context_provider(|| startup);
 
     use_effect(move || {
         let snapshot = shell.read().clone();
         save_shell(&snapshot);
+    });
+
+    use_effect(move || {
+        let profile = startup.read().clone();
+        save_startup_profile(&profile);
     });
 
     rsx! {
@@ -52,6 +93,9 @@ pub fn App() -> Element {
         style { {PODS_CSS} }
         style { {SCROLL_BAR_CSS} }
         style { {PAGE_TOP_BAR_CSS} }
+        style { {POD_STACK_CSS} }
+        style { {KANBAN_CSS} }
+        style { {IO_EXTENDED_CSS} }
         Screen {}
     }
 }

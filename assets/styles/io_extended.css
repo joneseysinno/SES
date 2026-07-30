@@ -1,0 +1,179 @@
+/* Extended IO widgets — badge, progress, metric, table, timeline */
+
+.ses-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  border: 1px solid var(--ses-border);
+  background: var(--ses-header);
+  color: var(--ses-text);
+}
+
+.ses-badge-neutral { border-color: var(--ses-border); }
+.ses-badge-good {
+  border-color: #55c27a;
+  color: #55c27a;
+}
+.ses-badge-warn {
+  border-color: #c2a055;
+  color: #c2a055;
+}
+.ses-badge-over,
+.ses-badge-danger {
+  border-color: var(--ses-danger);
+  color: var(--ses-danger);
+}
+
+.ses-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.ses-progress-track {
+  position: relative;
+  height: 6px;
+  background: var(--ses-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ses-progress-secondary {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: var(--ses-text-dim);
+  opacity: 0.4;
+}
+
+.ses-progress-primary {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: var(--ses-accent);
+}
+
+.ses-progress-good .ses-progress-primary { background: #55c27a; }
+.ses-progress-warn .ses-progress-primary { background: #c2a055; }
+.ses-progress-over .ses-progress-primary { background: var(--ses-danger); }
+
+.ses-progress-caption {
+  font-size: 10px;
+  color: var(--ses-text-dim);
+}
+
+.ses-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ses-metric-value {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ses-metric-label {
+  font-size: 11px;
+  color: var(--ses-text-dim);
+}
+
+.ses-metric-delta {
+  font-size: 11px;
+}
+
+.ses-metric-delta-up { color: #55c27a; }
+.ses-metric-delta-down { color: var(--ses-danger); }
+
+.ses-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ses-data-table th,
+.ses-data-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--ses-border);
+  text-align: left;
+}
+
+.ses-data-table th {
+  position: sticky;
+  top: 0;
+  background: var(--ses-header);
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ses-data-table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--ses-bg-raised) 60%, transparent);
+}
+
+.ses-data-table tbody tr:hover {
+  background: var(--ses-header);
+}
+
+.ses-timeline {
+  position: relative;
+  padding: 24px 8px 8px;
+  min-height: 64px;
+}
+
+.ses-timeline-axis {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 32px;
+  height: 2px;
+  background: var(--ses-border);
+}
+
+.ses-timeline-marker {
+  position: absolute;
+  top: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ses-timeline-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ses-accent);
+  border: 2px solid var(--ses-bg-raised);
+}
+
+.ses-timeline-label {
+  font-size: 10px;
+  color: var(--ses-text-dim);
+  white-space: nowrap;
+}
+
+.ses-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ses-file-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--ses-border);
+}
+
+.ses-file-list-item:hover {
+  background: var(--ses-header);
+}

@@ -1,0 +1,98 @@
+/* Kanban board */
+
+.ses-kanban {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 8px;
+  min-height: 200px;
+  align-items: flex-start;
+}
+
+.ses-kanban-col {
+  flex: 0 0 280px;
+  width: 280px;
+  background: var(--ses-bg);
+  border: 1px solid var(--ses-border);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+
+.ses-kanban-col-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ses-border);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.ses-kanban-col-header .ses-kanban-count {
+  margin-left: auto;
+  color: var(--ses-text-dim);
+  font-weight: 400;
+}
+
+.ses-kanban-col-header.ses-wip-warn {
+  color: #c2a055;
+}
+
+.ses-kanban-col-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  overflow-y: auto;
+  min-height: 40px;
+}
+
+.ses-kanban-card {
+  background: var(--ses-bg-raised);
+  border: 1px solid var(--ses-border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  cursor: grab;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.ses-kanban-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.ses-kanban-card-title {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.ses-kanban-card-sub {
+  color: var(--ses-text-dim);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.ses-kanban-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ses-kanban-card-progress {
+  margin-top: 8px;
+}
+
+.ses-kanban-drop {
+  outline: 1px dashed var(--ses-accent);
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--ses-accent) 8%, transparent);
+}
+
+.ses-kanban-unsorted {
+  border-style: dashed;
+  opacity: 0.9;
+}

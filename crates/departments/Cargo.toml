@@ -1,0 +1,26 @@
+[package]
+name = "departments"
+description = "SES business departments — project management, project, and future modules"
+publish = false
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+ses-shell = { workspace = true }
+ses-modules = { workspace = true }
+ses-ui = { workspace = true }
+ses-core = { workspace = true }
+ses-adapter = { workspace = true }
+dioxus = { workspace = true }
+serde = { workspace = true }
+
+[features]
+default = ["project-management", "project"]
+project-management = []
+project = []
+accounting = []
+hr = []

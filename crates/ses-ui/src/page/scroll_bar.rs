@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 fn landmark_span(lm: &LandmarkDef, positions: &HashMap<LeafId, f32>) -> Option<(f32, f32)> {
     let fracs: Vec<f32> = lm
-        .leaf_ids
+        .leaf_ids()
         .iter()
         .filter_map(|id| positions.get(id).copied())
         .collect();
@@ -44,7 +44,7 @@ pub fn LandmarkScrollBar(
 
     let brackets: Vec<(f32, f32, String)> = landmarks
         .iter()
-        .filter(|lm| lm.leaf_ids.len() > 1)
+        .filter(|lm| lm.leaf_ids().len() > 1)
         .filter_map(|lm| {
             let (min_f, max_f) = landmark_span(lm, &positions)?;
             let color = lm

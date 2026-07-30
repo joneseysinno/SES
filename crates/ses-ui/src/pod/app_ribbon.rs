@@ -1,6 +1,6 @@
 //! App menu ribbon — File / Edit / View / Modules / Help (placeholder commands).
 
-use crate::context::use_shell;
+use crate::context::{use_modules, use_shell, use_startup};
 use dioxus::prelude::*;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -37,6 +37,8 @@ impl RibbonMenu {
 #[component]
 pub fn AppRibbon() -> Element {
     let mut shell = use_shell();
+    let mut startup = use_startup();
+    let modules = use_modules();
     let mut open = use_signal(|| None::<RibbonMenu>);
 
     rsx! {
@@ -111,10 +113,93 @@ pub fn AppRibbon() -> Element {
                                         RibbonMenu::View => rsx! {
                                             button {
                                                 onclick: move |_| {
-                                                    shell.write().status_message = "View → Reset layout (placeholder)".into();
+                                                    let s = shell.read();
+                                                    let order: Vec<_> =
+                                                        s.workspaces.iter().map(|w| w.id).collect();
+                                                    let active = s.active_workspace;
+                                                    drop(s);
+                                                    let mut profile = startup.write();
+                                                    profile.workspace_order = order;
+                                                    profile.active_workspace = Some(active);
+                                                    shell.write().status_message =
+                                                        "Saved current layout as startup".into();
                                                     open.set(None);
                                                 },
-                                                "Reset Layout"
+                                                "Save current layout as startup"
+                                            }
+                                            button {
+                                                onclick: move |_| {
+                                                    let mods = modules.read();
+                                                    let key = shell
+                                                        .read()
+                                                        .active()
+                                                        .and_then(|w| w.seed_key.clone());
+                                                    if let Some(key) = key {
+                                                        let factory = ses_shell::factory_workspaces(
+                                                            &[],
+                                                            mods.logical.all_factory_workspaces(),
+                                                        );
+                                                        if let Some(seed) =
+                                                            factory.into_iter().find(|w| {
+                                                                w.seed_key.as_deref() == Some(key.as_str())
+                                                            })
+                                                        {
+                                                            let mut s = shell.write();
+                                                            if let Some(ws) = s.active_mut() {
+                                                                let id = ws.id;
+                                                                let name = ws.name.clone();
+                                                                *ws = seed;
+                                                                ws.id = id;
+                                                                ws.name = name;
+                                                                ws.user_modified = false;
+                                                            }
+                                                            s.status_message =
+                                                                "Workspace reset to factory".into();
+                                                        }
+                                                    } else {
+                                                        shell.write().status_message =
+                                                            "No factory seed for this workspace".into();
+                                                    }
+                                                    open.set(None);
+                                                },
+                                                "Reset this workspace to factory"
+                                            }
+                                            button {
+                                                onclick: move |_| {
+                                                    *startup.write() =
+                                                        ses_shell::StartupProfile::default();
+                                                    let mods = modules.read();
+                                                    let factory = ses_shell::factory_workspaces(
+                                                        &[],
+                                                        mods.logical.all_factory_workspaces(),
+                                                    );
+                                                    let state = ses_shell::resolve_startup(
+                                                        factory,
+                                                        Vec::new(),
+                                                        &ses_shell::StartupProfile::default(),
+                                                    );
+                                                    *shell.write() = state;
+                                                    shell.write().status_message =
+                                                        "Reset all to factory".into();
+                                                    open.set(None);
+                                                },
+                                                "Reset all to factory"
+                                            }
+                                            button {
+                                                onclick: move |_| {
+                                                    let mut profile = startup.write();
+                                                    profile.factory_seed_disabled =
+                                                        !profile.factory_seed_disabled;
+                                                    let on = profile.factory_seed_disabled;
+                                                    drop(profile);
+                                                    shell.write().status_message = if on {
+                                                        "Factory reseeding disabled".into()
+                                                    } else {
+                                                        "Factory reseeding enabled".into()
+                                                    };
+                                                    open.set(None);
+                                                },
+                                                "Never reseed factory workspaces"
                                             }
                                         },
                                         RibbonMenu::Modules => rsx! {

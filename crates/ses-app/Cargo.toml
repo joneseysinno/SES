@@ -17,6 +17,7 @@ workspace = true
 ses-shell = { workspace = true }
 ses-modules = { workspace = true }
 ses-ui = { workspace = true }
+departments = { workspace = true }
 dioxus = { workspace = true }
 infinite-db = { workspace = true, optional = true }
 serde = { workspace = true }

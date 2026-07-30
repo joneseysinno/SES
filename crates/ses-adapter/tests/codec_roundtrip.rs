@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use ses_adapter::AdapterError;
 use ses_adapter::codec::{DecodeLineage, decode_from_predecessor, decode_payload, encode_payload};
-use ses_adapter::payload::Project;
+use departments::project_management::ProjectRecord;
 use ses_core::testimony::{Testimony, TestimonyKind};
 use ses_core::versioned::{FromPrev, Genesis, Root, Versioned};
 
@@ -17,29 +17,39 @@ fn sample_design_basis() -> ses_adapter::payload::DesignBasis {
     }
 }
 
-fn sample_project() -> Project {
-    Project {
+fn sample_project_record() -> ProjectRecord {
+    use departments::project_management::ProjectPhase;
+    use departments::shared::{Address, Client, ProjectId};
+
+    ProjectRecord {
+        id: ProjectId::from_raw(1),
         name: "Clinic Addition".into(),
-        project_number: "2026-001".into(),
-        client: "Example Client".into(),
-        address: "Salt Lake City, UT".into(),
+        number: "2026-001".into(),
+        client: Client::from_name("Example Client"),
+        address: Address::from_freeform("Salt Lake City, UT"),
+        status: ses_adapter::payload::ProjectStatus::Draft,
+        phase: ProjectPhase::Prospect,
+        manager: String::new(),
+        start_utc: 1_700_000_000,
+        target_finish_utc: None,
+        contract_value: None,
         design_basis: sample_design_basis(),
         engineer_of_record: "Dana, PE".into(),
-        status: ses_adapter::payload::ProjectStatus::Draft,
         created_utc: 1_700_000_000,
     }
 }
 
 #[test]
-fn project_round_trip() {
-    let project = sample_project();
+fn project_record_round_trip() {
+    let record = sample_project_record();
 
-    let encoded = encode_payload(&project).expect("encode");
-    assert_eq!(encoded[0], Project::VERSION);
+    let encoded = encode_payload(&record).expect("encode");
+    assert_eq!(encoded[0], ProjectRecord::VERSION);
 
-    let decoded: Project = decode_payload(&encoded).expect("decode");
-    assert_eq!(decoded.name, project.name);
-    assert_eq!(decoded.project_number, project.project_number);
+    let decoded: ProjectRecord = decode_payload(&encoded).expect("decode");
+    assert_eq!(decoded.name, record.name);
+    assert_eq!(decoded.number, record.number);
+    assert_eq!(decoded.engineer_of_record, record.engineer_of_record);
 }
 
 #[test]

@@ -3,7 +3,7 @@
 //! Uses pointer events (not HTML5 DnD) so reordering works in desktop WebView
 //! as well as the browser.
 
-use crate::context::use_shell;
+use crate::context::{use_shell, use_startup};
 use crate::workspace::switcher::WorkspaceSwitcher;
 use dioxus::prelude::*;
 use ses_shell::WorkspaceId;
@@ -91,6 +91,7 @@ fn reorder_to_index(from: usize, insert_at: usize) -> Option<usize> {
 #[component]
 pub fn WorkspaceBar() -> Element {
     let mut shell = use_shell();
+    let mut startup = use_startup();
     let mut ctx = use_signal(|| None::<CtxMenu>);
     let mut renaming = use_signal(|| None::<WorkspaceId>);
     let mut rename_draft = use_signal(String::new);
@@ -365,7 +366,19 @@ pub fn WorkspaceBar() -> Element {
                 button {
                     class: "ses-danger-action",
                     onclick: move |_| {
+                        let seed = shell
+                            .read()
+                            .workspaces
+                            .iter()
+                            .find(|w| w.id == menu.id)
+                            .and_then(|w| w.seed_key.clone());
                         if shell.write().remove_workspace(menu.id) {
+                            if let Some(key) = seed {
+                                let mut profile = startup.write();
+                                if !profile.suppressed_factory.iter().any(|s| s == &key) {
+                                    profile.suppressed_factory.push(key);
+                                }
+                            }
                             shell.write().status_message = "Workspace removed".into();
                         } else {
                             shell.write().status_message = "Cannot remove last workspace".into();

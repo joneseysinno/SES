@@ -14,6 +14,6 @@ pub use code::{Code, CodeRole};
 pub use demand::{Demand, DemandSource};
 pub use element::{Element, ElementKind, SpecialWallGeometry};
 pub use material::{Material, MaterialKind};
-pub use project::{CodeEdition, DesignBasis, Project, ProjectStatus, RiskCategory, UnitSystemPref};
+pub use project::{CodeEdition, CodeStackEntry, DesignBasis, ProjectStatus, RiskCategory, UnitSystemPref};
 pub use provision::{Provision, ProvisionKind};
 pub use unit::Unit;

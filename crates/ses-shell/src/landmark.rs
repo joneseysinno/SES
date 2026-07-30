@@ -1,6 +1,6 @@
-//! Landmark definitions — named scroll-bar anchors on page leaves.
+//! Landmark definitions — named scroll-bar anchors on pods within pages.
 
-use crate::ids::{next_u64, LeafId};
+use crate::ids::{next_u64, LeafId, PodId};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -49,15 +49,27 @@ impl LandmarkIcon {
     }
 }
 
-/// A single landmark pinned to one or more page leaves.
-/// When `leaf_ids` has more than one entry this is a group landmark —
+/// A pod within a leaf that a landmark can target.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct LandmarkAnchor {
+    pub leaf_id: LeafId,
+    pub pod_id: PodId,
+}
+
+impl LandmarkAnchor {
+    pub fn new(leaf_id: LeafId, pod_id: PodId) -> Self {
+        Self { leaf_id, pod_id }
+    }
+}
+
+/// A single landmark pinned to one or more pods.
+/// When `anchors` has more than one entry this is a group landmark —
 /// the scroll bar shows a bracket spanning all member leaves.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LandmarkDef {
     pub id: LandmarkId,
-    /// Ordered list of leaf ids covered by this landmark.
-    /// Single-leaf landmark → one entry. Group → multiple entries.
-    pub leaf_ids: Vec<LeafId>,
+    /// Ordered list of (leaf, pod) anchors covered by this landmark.
+    pub anchors: Vec<LandmarkAnchor>,
     pub icon: LandmarkIcon,
     /// Tooltip shown on hover.
     pub tooltip: Option<String>,
@@ -69,10 +81,10 @@ pub struct LandmarkDef {
 }
 
 impl LandmarkDef {
-    pub fn single(leaf_id: LeafId, icon: LandmarkIcon) -> Self {
+    pub fn single(leaf_id: LeafId, pod_id: PodId, icon: LandmarkIcon) -> Self {
         Self {
             id: LandmarkId::new(),
-            leaf_ids: vec![leaf_id],
+            anchors: vec![LandmarkAnchor::new(leaf_id, pod_id)],
             icon,
             tooltip: None,
             shortcut_index: None,
@@ -80,15 +92,25 @@ impl LandmarkDef {
         }
     }
 
-    pub fn group(leaf_ids: Vec<LeafId>, icon: LandmarkIcon) -> Self {
+    pub fn group(anchors: Vec<LandmarkAnchor>, icon: LandmarkIcon) -> Self {
         Self {
             id: LandmarkId::new(),
-            leaf_ids,
+            anchors,
             icon,
             tooltip: None,
             shortcut_index: None,
             focus_on_click: false,
         }
+    }
+
+    pub fn leaf_ids(&self) -> Vec<LeafId> {
+        let mut out = Vec::new();
+        for a in &self.anchors {
+            if !out.contains(&a.leaf_id) {
+                out.push(a.leaf_id);
+            }
+        }
+        out
     }
 
     pub fn with_tooltip(mut self, tip: impl Into<String>) -> Self {

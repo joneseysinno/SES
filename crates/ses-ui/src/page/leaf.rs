@@ -1,17 +1,17 @@
-//! Page leaf chrome — header, maximize, pod swap, body + I/O, landmark menu.
+//! Page leaf chrome — header, maximize, page swap, body + I/O, landmark menu.
 
-use crate::context::use_shell;
+use crate::context::{use_modules_ui, use_shell, use_user};
 use crate::io::{InputContainer, OutputContainer};
 use crate::page::page_area::{
     LandmarkGroupCtx, LandmarkGroupDraft, LeafMountCtx, register_leaf_mount,
 };
-use crate::pod::PodHost;
+use crate::page::page_view::PageView;
 use dioxus::prelude::*;
 use ses_shell::{
-    Axis, IoPlacement, LandmarkDef, LandmarkIcon, LandmarkId, PageLeaf, PodKind,
+    Axis, IoPlacement, LandmarkAnchor, LandmarkDef, LandmarkIcon, LandmarkId, PageDescriptor,
+    PageLeaf, PodId,
     ops::{
-        add_landmark, maximize_leaf, remove_landmark, restore_layout, set_leaf_collapsed,
-        set_leaf_pod, split_leaf,
+        add_landmark, maximize_leaf, remove_landmark, restore_layout, set_leaf_page, split_leaf,
     },
 };
 
@@ -33,12 +33,13 @@ enum MenuMode {
 #[component]
 pub fn PageLeafView(leaf: PageLeaf) -> Element {
     let mut shell = use_shell();
+    let modules = use_modules_ui();
+    let user = use_user();
     let leaf_id = leaf.id;
-    let kind = leaf.pod.kind;
-    let module_id = leaf.pod.module_id.clone();
-    let pod_title = leaf.pod.title.clone();
-    let collapsible = leaf.pod.collapsible;
-    let collapsed = leaf.pod.collapsed && collapsible;
+    let page = leaf.page.clone();
+    let module_id = page.module_id.clone();
+    let page_title = page.title.clone();
+    let display_title = page.display_title().to_string();
     let io = leaf.io.clone();
     let channel = io.channel.clone().unwrap_or_else(|| "calc.result".into());
 
@@ -59,13 +60,12 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
 
     let existing = {
         let s = shell.read();
-        s.active()
-            .and_then(|w| {
-                w.landmarks
-                    .iter()
-                    .find(|lm| lm.leaf_ids.contains(&leaf_id))
-                    .cloned()
-            })
+        s.active().and_then(|w| {
+            w.landmarks
+                .iter()
+                .find(|lm| lm.leaf_ids().contains(&leaf_id))
+                .cloned()
+        })
     };
 
     let selecting = group_draft
@@ -79,9 +79,6 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
 
     let leaf_class = {
         let mut c = "ses-page-leaf".to_string();
-        if collapsed {
-            c.push_str(" ses-collapsed");
-        }
         if in_select_mode {
             c.push_str(" ses-landmark-selecting");
         }
@@ -98,6 +95,27 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
         }
     } else {
         "ses-page-body"
+    };
+
+    let picker_pages: Vec<(String, String, String)> = {
+        let s = shell.read();
+        let u = user.read();
+        let mods = modules.read();
+        s.active()
+            .map(|ws| {
+                mods.logical
+                    .pages_for_workspace(ws, &u)
+                    .into_iter()
+                    .map(|(mid, p)| {
+                        (
+                            mid.0,
+                            p.page_id.0.clone(),
+                            p.display_name.to_string(),
+                        )
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
     };
 
     let mut open_form = move |edit: Option<LandmarkDef>| {
@@ -118,6 +136,7 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
 
     let existing_id = existing.as_ref().map(|lm| lm.id);
     let existing_for_edit = existing.clone();
+    let current_key = format!("{}:{}", page.module_id, page.page_id);
 
     rsx! {
         div {
@@ -130,7 +149,6 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
             div {
                 class: "ses-page-header",
                 onclick: move |_| {
-                    // Toggle membership while in group-select mode.
                     if let Some(mut draft) = group_draft {
                         let mut g = draft.write();
                         if let Some(d) = g.as_mut() {
@@ -143,33 +161,37 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
                     }
                 },
                 select {
-                    value: "{kind.display_name()}",
+                    value: "{current_key}",
                     onchange: move |evt| {
-                        let label = evt.value();
-                        let new_kind = PodKind::page_kinds()
-                            .iter()
-                            .copied()
-                            .find(|k| k.display_name() == label)
-                            .unwrap_or(PodKind::View);
-                        let mod_id = match new_kind {
-                            PodKind::Calculation => "analysis",
-                            _ => "core-ui",
+                        let key = evt.value();
+                        let Some((mod_id, page_id)) = key.split_once(':') else {
+                            return;
                         };
+                        let mut desc = PageDescriptor::new(mod_id, page_id);
+                        // Preserve title override when swapping within same module.
+                        if let Some(t) = page_title.clone() {
+                            desc = desc.with_title(t);
+                        }
                         if let Some(ws) = shell.write().active_mut() {
-                            set_leaf_pod(&mut ws.layout, leaf_id, new_kind, mod_id);
+                            set_leaf_page(&mut ws.layout, leaf_id, desc);
                         }
                     },
-                    for k in PodKind::page_kinds() {
-                        option {
-                            selected: *k == kind,
-                            value: "{k.display_name()}",
-                            "{k.display_name()}"
+                    for (mod_id, page_id, display_name) in picker_pages.iter() {
+                        {
+                            let key = format!("{mod_id}:{page_id}");
+                            let label = format!("{mod_id} — {display_name}");
+                            let selected = key == current_key;
+                            rsx! {
+                                option {
+                                    selected: selected,
+                                    value: "{key}",
+                                    "{label}"
+                                }
+                            }
                         }
                     }
                 }
-                if let Some(title) = pod_title.clone() {
-                    span { class: "ses-page-header-title", "{title}" }
-                }
+                span { class: "ses-page-header-title", "{display_title}" }
                 span { class: "ses-muted", style: "font-size: 10px;",
                     "{module_id}"
                 }
@@ -232,18 +254,6 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
                             }
                         },
                         if is_maximized { "▾" } else { "▴" }
-                    }
-                    if collapsible {
-                        button {
-                            class: "ses-ghost",
-                            title: if collapsed { "Expand" } else { "Collapse" },
-                            onclick: move |_| {
-                                if let Some(ws) = shell.write().active_mut() {
-                                    set_leaf_collapsed(&mut ws.layout, leaf_id, !collapsed);
-                                }
-                            },
-                            if collapsed { "▶" } else { "▼" }
-                        }
                     }
                 }
 
@@ -376,6 +386,8 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
                                             }
                                             let tip = form_tooltip.peek().clone();
                                             let tip = if tip.is_empty() { None } else { Some(tip) };
+                                            // Whole-leaf landmark: sentinel pod id 0.
+                                            let pod_id = PodId(0);
 
                                             if in_select_mode && edit_id.is_none() {
                                                 if let Some(mut draft) = group_draft {
@@ -385,10 +397,14 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
                                                         .map(|d| d.selected.clone())
                                                         .unwrap_or_default();
                                                     if selected.len() >= 2 {
+                                                        let anchors: Vec<_> = selected
+                                                            .into_iter()
+                                                            .map(|lid| LandmarkAnchor::new(lid, PodId(0)))
+                                                            .collect();
                                                         let mut s = shell.write();
                                                         if let Some(ws) = s.active_mut() {
                                                             let mut lm =
-                                                                LandmarkDef::group(selected, icon);
+                                                                LandmarkDef::group(anchors, icon);
                                                             lm.tooltip = tip;
                                                             ws.add_landmark(lm);
                                                         }
@@ -415,7 +431,7 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
                                             } else {
                                                 let mut s = shell.write();
                                                 if let Some(ws) = s.active_mut() {
-                                                    let id = add_landmark(ws, leaf_id, icon);
+                                                    let id = add_landmark(ws, leaf_id, pod_id, icon);
                                                     if let Some(lm) =
                                                         ws.landmarks.iter_mut().find(|lm| lm.id == id)
                                                     {
@@ -440,15 +456,13 @@ pub fn PageLeafView(leaf: PageLeaf) -> Element {
                     MenuMode::Closed => rsx! {}
                 }
             }
-            if !collapsed {
-                div { class: "{body_class}",
-                    PodHost { kind, channel: channel.clone() }
-                    if io.show_input {
-                        InputContainer { channel: channel.clone() }
-                    }
-                    if io.show_output {
-                        OutputContainer { channel: channel.clone() }
-                    }
+            div { class: "{body_class}",
+                PageView { page: page.clone(), leaf_id }
+                if io.show_input {
+                    InputContainer { channel: channel.clone() }
+                }
+                if io.show_output {
+                    OutputContainer { channel: channel.clone() }
                 }
             }
         }

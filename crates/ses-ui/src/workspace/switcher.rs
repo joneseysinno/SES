@@ -1,8 +1,6 @@
-//! Add / reset workspace actions (dup/remove live on tab context menu).
-
 use crate::context::use_shell;
 use dioxus::prelude::*;
-use ses_shell::{PageNode, PodDescriptor, PodKind, WorkspaceDef, default_shell};
+use ses_shell::{PageDescriptor, PageNode, WorkspaceDef, default_shell};
 
 #[component]
 pub fn WorkspaceSwitcher() -> Element {
@@ -15,7 +13,7 @@ pub fn WorkspaceSwitcher() -> Element {
             onclick: move |_| {
                 let blank = WorkspaceDef::new(
                     "Workspace",
-                    PageNode::leaf(PodDescriptor::new(PodKind::View, "core-ui")),
+                    PageNode::leaf(PageDescriptor::new("core-ui", "view")),
                 );
                 shell.write().add_workspace(blank);
                 shell.write().status_message = "Workspace added".into();

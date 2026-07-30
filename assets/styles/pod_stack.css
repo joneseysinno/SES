@@ -1,0 +1,86 @@
+/* Pod stack / grid inside a page */
+
+.ses-pod-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-height: 0;
+  padding: 8px;
+}
+
+.ses-pod-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  min-height: 0;
+  padding: 8px;
+}
+
+@container (max-width: 639px) {
+  .ses-pod-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ses-pod-grid-cell {
+  min-width: 0;
+}
+
+.ses-pod-shell {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ses-border);
+  background: var(--ses-bg-raised);
+  border-radius: 3px;
+  min-height: 0;
+}
+
+.ses-pod-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  background: var(--ses-header);
+  border-bottom: 1px solid var(--ses-border);
+  flex-shrink: 0;
+}
+
+.ses-pod-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.ses-pod-landmark-flag {
+  font-size: 10px;
+  color: var(--ses-accent);
+  border: 1px solid var(--ses-accent);
+  border-radius: 2px;
+  padding: 0 4px;
+}
+
+.ses-pod-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+}
+
+.ses-pod-scroller .ses-pod-body {
+  overflow: auto;
+}
+
+.ses-pod-collapsed .ses-pod-body {
+  display: none;
+}
+
+.ses-pod-summary {
+  order: -1;
+}
+
+.ses-pod-anchor {
+  flex: 1;
+}

@@ -1,9 +1,47 @@
 //! Workspace definitions and shell state.
 
-use crate::ids::WorkspaceId;
+use crate::ids::{ModuleId, WorkspaceId};
 use crate::landmark::{LandmarkDef, LandmarkId};
 use crate::page::{PageNode, PageTopBar};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+/// Which pages the page-picker offers in this workspace.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum PageFilter {
+    /// Seeded departmental workspace — picker shows only this module's pages.
+    Department(ModuleId),
+    /// User-created workspace — picker shows every page the user may access,
+    /// grouped by department.
+    UserDefined,
+}
+
+impl Default for PageFilter {
+    fn default() -> Self {
+        Self::UserDefined
+    }
+}
+
+/// Context values every page in this workspace resolves against.
+/// The Project department template binds `project_id` here; all its pages
+/// then read the same project without each one asking separately.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkspaceBinding {
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub values: BTreeMap<String, String>,
+}
+
+impl WorkspaceBinding {
+    pub const PROJECT_ID: &'static str = "project_id";
+
+    pub fn get(&self, key: &str) -> Option<&str> {
+        self.values.get(key).map(|s| s.as_str())
+    }
+
+    pub fn set(&mut self, key: impl Into<String>, val: impl Into<String>) {
+        self.values.insert(key.into(), val.into());
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WorkspaceDef {
@@ -21,6 +59,23 @@ pub struct WorkspaceDef {
     /// Named landmarks pinned to the page scroll bar.
     #[serde(default)]
     pub landmarks: Vec<LandmarkDef>,
+    /// Which pages the page-picker offers.
+    #[serde(default)]
+    pub page_filter: PageFilter,
+    /// Context values pages resolve against.
+    #[serde(default)]
+    pub binding: WorkspaceBinding,
+    /// True once the user has edited this workspace. Factory reseeding skips it.
+    #[serde(default)]
+    pub user_modified: bool,
+    /// If this workspace was instantiated from a department template,
+    /// which template it came from.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template_of: Option<ModuleId>,
+    /// Stable factory seed key (e.g. `"project-mgmt/portfolio"`).
+    /// User-created workspaces have `None`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed_key: Option<String>,
 }
 
 impl WorkspaceDef {
@@ -33,11 +88,38 @@ impl WorkspaceDef {
             layout_before_maximize: None,
             top_bar: None,
             landmarks: Vec::new(),
+            page_filter: PageFilter::default(),
+            binding: WorkspaceBinding::default(),
+            user_modified: false,
+            template_of: None,
+            seed_key: None,
         }
     }
 
     pub fn with_top_bar(mut self, bar: PageTopBar) -> Self {
         self.top_bar = Some(bar);
+        self
+    }
+
+    pub fn for_department(mut self, m: impl Into<ModuleId>) -> Self {
+        self.page_filter = PageFilter::Department(m.into());
+        self
+    }
+
+    pub fn bound_to(mut self, key: &str, val: impl Into<String>) -> Self {
+        self.binding.set(key, val);
+        self
+    }
+
+    pub fn with_seed_key(mut self, key: impl Into<String>) -> Self {
+        self.seed_key = Some(key.into());
+        self
+    }
+
+    /// Strip the department constraint — user takes ownership.
+    pub fn into_custom(mut self) -> Self {
+        self.page_filter = PageFilter::UserDefined;
+        self.user_modified = true;
         self
     }
 
@@ -134,6 +216,11 @@ impl ShellState {
         dup.layout_before_maximize = None;
         dup.top_bar = current.top_bar.clone();
         dup.landmarks = current.landmarks.clone();
+        dup.page_filter = current.page_filter.clone();
+        dup.binding = current.binding.clone();
+        dup.user_modified = true;
+        dup.template_of = current.template_of.clone();
+        dup.seed_key = None;
         self.add_workspace(dup);
         true
     }
@@ -166,13 +253,12 @@ impl ShellState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::page::PageNode;
-    use crate::pod::{PodDescriptor, PodKind};
+    use crate::page::{PageDescriptor, PageNode};
 
     fn blank(name: &str) -> WorkspaceDef {
         WorkspaceDef::new(
             name,
-            PageNode::leaf(PodDescriptor::new(PodKind::View, "core-ui")),
+            PageNode::leaf(PageDescriptor::new("core-ui", "view")),
         )
     }
 
@@ -226,5 +312,31 @@ mod tests {
             vec!["B", "C", "A"]
         );
         assert_eq!(s.active_workspace, active);
+    }
+
+    #[test]
+    fn serde_defaults_for_new_fields() {
+        let json = r#"{
+            "id": 1,
+            "name": "Legacy",
+            "layout": {
+                "Leaf": {
+                    "id": 2,
+                    "page": { "module_id": "core-ui", "page_id": "view" },
+                    "io": {
+                        "show_input": false,
+                        "show_output": false,
+                        "placement": "Below",
+                        "channel": null
+                    }
+                }
+            },
+            "maximized": null
+        }"#;
+        let ws: WorkspaceDef = serde_json::from_str(json).expect("decode");
+        assert_eq!(ws.page_filter, PageFilter::UserDefined);
+        assert!(ws.binding.values.is_empty());
+        assert!(!ws.user_modified);
+        assert!(ws.seed_key.is_none());
     }
 }

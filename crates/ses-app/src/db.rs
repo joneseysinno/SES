@@ -1,16 +1,18 @@
-//! Minimal infinite-db persistence for shell layout.
+//! Minimal infinite-db persistence for shell layout and startup profile.
 //!
 //! Spaces (scaffolding):
-//! - `ui.workspaces` (id 1) — serialized ShellState
+//! - `ui.workspaces` (id 1) — serialized workspace list (or legacy ShellState)
 //! - `auth.users` (id 2) — placeholder for future permissions
+//! - `ui.startup` (id 3) — StartupProfile
 //!
 //! Persistence is desktop-only (`feature = "desktop"`). Web uses in-memory defaults.
 
-use ses_shell::{ShellState, default_shell};
+use ses_shell::{ShellState, StartupProfile, WorkspaceDef, default_shell};
 use thiserror::Error;
 
 pub const SPACE_UI_WORKSPACES: u64 = 1;
 pub const SPACE_AUTH_USERS: u64 = 2;
+pub const SPACE_UI_STARTUP: u64 = 3;
 
 #[derive(Debug, Error)]
 pub enum DbError {
@@ -20,7 +22,61 @@ pub enum DbError {
     Codec(String),
 }
 
+/// Load startup profile from disk, or default.
+pub fn load_startup_profile() -> StartupProfile {
+    #[cfg(feature = "desktop")]
+    {
+        match load_startup_from_db() {
+            Ok(Some(p)) => p,
+            Ok(None) => StartupProfile::default(),
+            Err(e) => {
+                eprintln!("ses: startup profile unavailable ({e}); using defaults");
+                StartupProfile::default()
+            }
+        }
+    }
+    #[cfg(not(feature = "desktop"))]
+    {
+        StartupProfile::default()
+    }
+}
+
+/// Persist startup profile (no-op without desktop feature).
+pub fn save_startup_profile(profile: &StartupProfile) {
+    #[cfg(feature = "desktop")]
+    {
+        if let Err(e) = save_startup_to_db(profile) {
+            eprintln!("ses: failed to save startup profile: {e}");
+        }
+    }
+    #[cfg(not(feature = "desktop"))]
+    {
+        let _ = profile;
+    }
+}
+
+/// Load persisted workspaces only (not a full ShellState).
+pub fn load_workspaces() -> Vec<WorkspaceDef> {
+    #[cfg(feature = "desktop")]
+    {
+        match load_shell_from_db() {
+            Ok(Some(state)) => state.workspaces,
+            Ok(None) => Vec::new(),
+            Err(e) => {
+                eprintln!("ses: layout db unavailable ({e}); no persisted workspaces");
+                Vec::new()
+            }
+        }
+    }
+    #[cfg(not(feature = "desktop"))]
+    {
+        Vec::new()
+    }
+}
+
 /// Load shell state from disk, or seed defaults.
+/// Prefer resolving via [`ses_shell::resolve_startup`] with a module registry
+/// when department factory seeds are available.
 pub fn load_or_default_shell() -> ShellState {
     #[cfg(feature = "desktop")]
     {
@@ -48,8 +104,7 @@ pub fn load_or_default_shell() -> ShellState {
     }
 }
 
-#[cfg(feature = "desktop")]
-fn bump_ids_past(state: &ShellState) {
+pub fn bump_ids_past(state: &ShellState) {
     use ses_shell::ids::reset_id_counter;
     let mut max_id = 1u64;
     for ws in &state.workspaces {
@@ -113,6 +168,11 @@ fn open_db() -> Result<infinite_db::InfiniteDb, DbError> {
         "auth.users",
         1,
     ));
+    let _ = db.register_space(SpaceConfig::new(
+        SpaceId(SPACE_UI_STARTUP),
+        "ui.startup",
+        1,
+    ));
 
     Ok(db)
 }
@@ -148,7 +208,7 @@ fn save_shell_to_db(state: &ShellState) -> Result<(), DbError> {
     use infinite_db::infinitedb_core::address::{DimensionVector, SpaceId};
 
     let db = open_db()?;
-    let bytes = encode_shell(state)?;
+    let bytes = encode_json(state)?;
     db.insert(
         SpaceId(SPACE_UI_WORKSPACES),
         DimensionVector::new(vec![0]),
@@ -168,11 +228,51 @@ fn save_shell_to_db(state: &ShellState) -> Result<(), DbError> {
 }
 
 #[cfg(feature = "desktop")]
-fn encode_shell(state: &ShellState) -> Result<Vec<u8>, DbError> {
-    serde_json::to_vec(state).map_err(|e| DbError::Codec(e.to_string()))
+fn load_startup_from_db() -> Result<Option<StartupProfile>, DbError> {
+    use infinite_db::infinitedb_core::address::SpaceId;
+
+    let db = open_db()?;
+    let rows = db
+        .query(SpaceId(SPACE_UI_STARTUP), None)
+        .map_err(|e| DbError::Engine(e.to_string()))?;
+
+    for record in &rows {
+        if record.address.point.coords.first().copied() == Some(0) {
+            if let Ok(p) = decode_json::<StartupProfile>(&record.data) {
+                return Ok(Some(p));
+            }
+        }
+    }
+    Ok(None)
+}
+
+#[cfg(feature = "desktop")]
+fn save_startup_to_db(profile: &StartupProfile) -> Result<(), DbError> {
+    use infinite_db::infinitedb_core::address::{DimensionVector, SpaceId};
+
+    let db = open_db()?;
+    let bytes = encode_json(profile)?;
+    db.insert(
+        SpaceId(SPACE_UI_STARTUP),
+        DimensionVector::new(vec![0]),
+        bytes,
+    )
+    .map_err(|e| DbError::Engine(e.to_string()))?;
+    db.sync().map_err(|e| DbError::Engine(e.to_string()))?;
+    Ok(())
+}
+
+#[cfg(feature = "desktop")]
+fn encode_json<T: serde::Serialize>(value: &T) -> Result<Vec<u8>, DbError> {
+    serde_json::to_vec(value).map_err(|e| DbError::Codec(e.to_string()))
+}
+
+#[cfg(feature = "desktop")]
+fn decode_json<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Result<T, DbError> {
+    serde_json::from_slice(bytes).map_err(|e| DbError::Codec(e.to_string()))
 }
 
 #[cfg(feature = "desktop")]
 fn decode_shell(bytes: &[u8]) -> Result<ShellState, DbError> {
-    serde_json::from_slice(bytes).map_err(|e| DbError::Codec(e.to_string()))
+    decode_json(bytes)
 }

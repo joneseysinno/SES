@@ -1,8 +1,80 @@
 //! Page split tree — Blender-style area layout.
+//!
+//! A leaf holds a [`PageDescriptor`] (department-owned screen region).
+//! Pods are furniture *inside* a page, not split-tree units.
 
-use crate::ids::LeafId;
-use crate::pod::PodDescriptor;
+use crate::ids::{LeafId, ModuleId};
+use crate::pod::PodLayout;
 use serde::{Deserialize, Serialize};
+
+/// Identifies which department page occupies a leaf of the split tree.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct PageId(pub String);
+
+impl PageId {
+    pub fn new(s: impl Into<String>) -> Self {
+        Self(s.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<&str> for PageId {
+    fn from(s: &str) -> Self {
+        Self::new(s)
+    }
+}
+
+impl std::fmt::Display for PageId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+/// A page is a department-owned screen region hosted in a split-tree leaf.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PageDescriptor {
+    /// Which department module owns and renders this page.
+    pub module_id: ModuleId,
+    /// Which page within that module (e.g. "project-list", "task-board").
+    pub page_id: PageId,
+    /// Display override for the page header strip.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// How this page arranges its pods.
+    #[serde(default)]
+    pub pod_layout: PodLayout,
+}
+
+impl PageDescriptor {
+    pub fn new(module_id: impl Into<ModuleId>, page_id: impl Into<PageId>) -> Self {
+        Self {
+            module_id: module_id.into(),
+            page_id: page_id.into(),
+            title: None,
+            pod_layout: PodLayout::default(),
+        }
+    }
+
+    pub fn with_title(mut self, t: impl Into<String>) -> Self {
+        self.title = Some(t.into());
+        self
+    }
+
+    pub fn with_layout(mut self, l: PodLayout) -> Self {
+        self.pod_layout = l;
+        self
+    }
+
+    /// Title shown in the leaf header: override if set, otherwise page id.
+    pub fn display_title(&self) -> &str {
+        self.title
+            .as_deref()
+            .unwrap_or_else(|| self.page_id.as_str())
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Axis {
@@ -69,15 +141,15 @@ impl IoLayout {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PageLeaf {
     pub id: LeafId,
-    pub pod: PodDescriptor,
+    pub page: PageDescriptor,
     pub io: IoLayout,
 }
 
 impl PageLeaf {
-    pub fn new(pod: PodDescriptor) -> Self {
+    pub fn new(page: PageDescriptor) -> Self {
         Self {
             id: LeafId::new(),
-            pod,
+            page,
             io: IoLayout::none(),
         }
     }
@@ -102,8 +174,8 @@ pub enum PageNode {
 }
 
 impl PageNode {
-    pub fn leaf(pod: PodDescriptor) -> Self {
-        Self::Leaf(PageLeaf::new(pod))
+    pub fn leaf(page: PageDescriptor) -> Self {
+        Self::Leaf(PageLeaf::new(page))
     }
 
     pub fn split(axis: Axis, ratio: f32, first: PageNode, second: PageNode) -> Self {
@@ -147,6 +219,17 @@ impl PageNode {
             Self::Split { first, second, .. } => {
                 first.collect_leaf_ids(out);
                 second.collect_leaf_ids(out);
+            }
+        }
+    }
+
+    /// Assign fresh [`LeafId`]s to every leaf (template instantiation).
+    pub fn reassign_leaf_ids(&mut self) {
+        match self {
+            Self::Leaf(leaf) => leaf.id = LeafId::new(),
+            Self::Split { first, second, .. } => {
+                first.reassign_leaf_ids();
+                second.reassign_leaf_ids();
             }
         }
     }

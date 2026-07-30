@@ -1,7 +1,6 @@
-//! Pod manifests — declared I/O slots for data-flow wiring.
+//! Pod manifests — declared I/O slots for data-flow wiring (chrome / legacy).
 
 use serde::{Deserialize, Serialize};
-use ses_shell::PodKind;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SlotDecl {
@@ -18,33 +17,35 @@ impl SlotDecl {
     }
 }
 
-/// Declares a pod type offered by a module, with optional I/O slots.
+/// Declares a chrome or legacy pod type offered by a module, with optional I/O slots.
+/// Content pages use [`crate::PageManifest`] instead.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PodManifest {
-    pub kind: PodKind,
+    pub id: String,
     pub display_name: String,
     pub inputs: Vec<SlotDecl>,
     pub outputs: Vec<SlotDecl>,
 }
 
 impl PodManifest {
-    pub fn simple(kind: PodKind) -> Self {
+    pub fn simple(id: impl Into<String>, display_name: impl Into<String>) -> Self {
         Self {
-            kind,
-            display_name: kind.display_name().to_string(),
+            id: id.into(),
+            display_name: display_name.into(),
             inputs: Vec::new(),
             outputs: Vec::new(),
         }
     }
 
     pub fn with_io(
-        kind: PodKind,
+        id: impl Into<String>,
+        display_name: impl Into<String>,
         inputs: Vec<SlotDecl>,
         outputs: Vec<SlotDecl>,
     ) -> Self {
         Self {
-            kind,
-            display_name: kind.display_name().to_string(),
+            id: id.into(),
+            display_name: display_name.into(),
             inputs,
             outputs,
         }

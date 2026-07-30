@@ -1,92 +1,129 @@
-//! Pod descriptors and kinds.
+//! Pod descriptors — collapsible sections inside a page.
+//!
+//! Pods hold IO components. They never split. `PodKind` names chrome / reflow
+//! behavior, never content.
 
-use crate::ids::ModuleId;
+use crate::ids::PodId;
 use serde::{Deserialize, Serialize};
 
-/// Functional editor type hosted inside a page leaf.
+/// Behavioral classification of a pod. Determines chrome and reflow policy —
+/// NOT what the pod contains. Content is always IO components.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PodKind {
-    TopBar,
-    StatusBar,
-    MenuBar,
-    View,
-    Outliner,
-    Properties,
-    Calculation,
+    /// Standard collapsible section. Collapse toggle, landmark-eligible,
+    /// reflows into a single column below the narrow breakpoint.
+    Section,
+
+    /// Always visible, no collapse toggle. Used for primary content that
+    /// must never be hidden (e.g. the Kanban board itself).
+    Anchor,
+
+    /// Long scrolling content. Always landmark-eligible; gets its own
+    /// sub-scroll region when the page area is tight.
+    Scroller,
+
+    /// Compact readout. Never collapses, never reflows, pinned to the top
+    /// of the pod stack regardless of declared order.
+    Summary,
+
+    /// Department-defined behavior. The owning module supplies chrome rules.
+    Custom,
 }
 
 impl PodKind {
-    pub fn display_name(self) -> &'static str {
+    pub fn collapsible(self) -> bool {
+        matches!(self, Self::Section | Self::Scroller)
+    }
+
+    pub fn landmark_eligible(self) -> bool {
+        matches!(self, Self::Section | Self::Scroller | Self::Anchor)
+    }
+
+    /// Summary pods float to the top of the stack.
+    pub fn sort_weight(self) -> u8 {
         match self {
-            Self::TopBar => "Top Bar",
-            Self::StatusBar => "Status Bar",
-            Self::MenuBar => "Menu Bar",
-            Self::View => "3D Viewport",
-            Self::Outliner => "Outliner",
-            Self::Properties => "Properties",
-            Self::Calculation => "Calculation",
+            Self::Summary => 0,
+            Self::Anchor => 1,
+            _ => 2,
         }
     }
 
-    /// Pod kinds selectable in a page leaf header.
-    pub fn page_kinds() -> &'static [PodKind] {
-        &[
-            Self::View,
-            Self::Outliner,
-            Self::Properties,
-            Self::Calculation,
-            Self::MenuBar,
-        ]
+    pub fn display_name(self) -> &'static str {
+        match self {
+            Self::Section => "Section",
+            Self::Anchor => "Anchor",
+            Self::Scroller => "Scroller",
+            Self::Summary => "Summary",
+            Self::Custom => "Custom",
+        }
     }
 }
 
+/// How a page arranges its pods.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum PodLayout {
+    /// Vertical stack, full width. Reflows to itself at all sizes.
+    Stack,
+    /// N-column grid that degrades to Stack below `min_col_px * cols`.
+    Grid { cols: u8, min_col_px: u32 },
+}
+
+impl Default for PodLayout {
+    fn default() -> Self {
+        Self::Stack
+    }
+}
+
+fn one() -> u8 {
+    1
+}
+
+/// A pod within a page — chrome + identity. Content is IO, not stored here.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PodDescriptor {
+    pub id: PodId,
     pub kind: PodKind,
-    pub module_id: ModuleId,
-    /// Optional display override for the leaf title strip (e.g. "Geometry").
+    pub title: String,
+    /// Landmark icon label (1–3 chars) if this pod appears on the scroll bar.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
-    /// When true, the leaf header shows a collapse toggle.
-    #[serde(default)]
-    pub collapsible: bool,
-    /// When true (and collapsible), only the title strip is shown.
+    pub landmark_label: Option<String>,
     #[serde(default)]
     pub collapsed: bool,
+    /// Grid span when the parent page uses [`PodLayout::Grid`].
+    #[serde(default = "one")]
+    pub col_span: u8,
 }
 
 impl PodDescriptor {
-    pub fn new(kind: PodKind, module_id: impl Into<ModuleId>) -> Self {
+    pub fn new(kind: PodKind, title: impl Into<String>) -> Self {
         Self {
+            id: PodId::new(),
             kind,
-            module_id: module_id.into(),
-            title: None,
-            collapsible: false,
+            title: title.into(),
+            landmark_label: None,
             collapsed: false,
+            col_span: 1,
         }
     }
 
-    pub fn with_title(mut self, title: impl Into<String>) -> Self {
-        self.title = Some(title.into());
+    pub fn with_landmark(mut self, label: impl Into<String>) -> Self {
+        self.landmark_label = Some(label.into());
         self
     }
 
-    pub fn collapsible(mut self) -> Self {
-        self.collapsible = true;
-        self
-    }
-
-    /// Mark as collapsible and start collapsed (title strip only).
     pub fn start_collapsed(mut self) -> Self {
-        self.collapsible = true;
-        self.collapsed = true;
+        if self.kind.collapsible() {
+            self.collapsed = true;
+        }
         self
     }
 
-    /// Title shown in the leaf header: override if set, otherwise kind name.
+    pub fn with_col_span(mut self, span: u8) -> Self {
+        self.col_span = span.max(1);
+        self
+    }
+
     pub fn display_title(&self) -> &str {
-        self.title
-            .as_deref()
-            .unwrap_or_else(|| self.kind.display_name())
+        &self.title
     }
 }

@@ -6,11 +6,9 @@ use dioxus::prelude::*;
 use ses_shell::{Axis, PageNode};
 use std::rc::Rc;
 
-fn leaf_is_collapsed_strip(node: &PageNode) -> bool {
-    matches!(
-        node,
-        PageNode::Leaf(leaf) if leaf.pod.collapsible && leaf.pod.collapsed
-    )
+fn leaf_is_collapsed_strip(_node: &PageNode) -> bool {
+    // Leaf-level collapse removed — pods collapse inside pages.
+    false
 }
 
 fn pane_flex_style(pct: f32, collapsed_strip: bool) -> String {

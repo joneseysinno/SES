@@ -1,6 +1,4 @@
 use serde::{Deserialize, Serialize};
-use ses_core::testimony::{Testimony, TestimonyKind};
-use ses_core::versioned::{Genesis, Root, Versioned};
 
 /// Default ACI edition for new projects when none is specified.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
@@ -72,36 +70,4 @@ pub enum ProjectStatus {
     Issued,
     /// Archived.
     Archived,
-}
-
-/// Project header and design basis (ses-vocabulary §2).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Project {
-    /// Project display name.
-    pub name: String,
-    /// Firm project number.
-    pub project_number: String,
-    /// Client name.
-    pub client: String,
-    /// Project address.
-    pub address: String,
-    /// Design basis snapshot.
-    pub design_basis: DesignBasis,
-    /// Engineer of record.
-    pub engineer_of_record: String,
-    /// Lifecycle status.
-    pub status: ProjectStatus,
-    /// Creation timestamp (UTC seconds).
-    pub created_utc: i64,
-}
-
-impl Versioned for Project {
-    const VERSION: u8 = 1;
-    type Supersedes = Root;
-    type LineageVia = Genesis;
-}
-
-impl Testimony for Project {
-    const KIND: TestimonyKind = TestimonyKind::Authored;
-    const WITNESSES: &'static [&'static str] = &["engineer"];
 }
