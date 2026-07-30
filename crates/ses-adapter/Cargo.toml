@@ -1,0 +1,20 @@
+[package]
+name = "ses-adapter"
+description = "InfiniteDB space registry, payloads, and hyperedge catalog for SES"
+publish = false
+edition.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+ses-core = { workspace = true }
+ses-engineer = { workspace = true }
+infinite-db = { workspace = true }
+bincode = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

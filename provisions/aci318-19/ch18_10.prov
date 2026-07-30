@@ -1,0 +1,24 @@
+# ACI 318-19 §18.10 — placeholder provisions (ses-provision-dsl.md §5)
+#
+# provision "ACI318-19 18.10.3.1" {
+#   kind: procedure
+#   title: "Design shear force amplification"
+#   derive Ve = min(param.omega_v * param.w_v * dem.Vu, 3.0 * dem.Vu)
+#   narrative: "Ve = Ωv·ωv·Vu = {param.omega_v}·{param.w_v}·{dem.Vu:kip}
+#               = {Ve:kip} ≤ 3Vu"
+#   level: rational
+# }
+#
+# provision "ACI318-19 18.10.4.1" {
+#   kind: procedure
+#   title: "Nominal shear strength, special structural walls"
+#   param alpha_c = piecewise(wall.hw_over_lw) {
+#     <= 1.5 => 3.0
+#     >= 2.0 => 2.0
+#     otherwise => interp(1.5 => 3.0, 2.0 => 2.0)
+#   }
+#   derive Vn = (param.alpha_c * conc.lambda * sqrt_psi(conc.fc)
+#                + reinf.rho_t * steel.fy) * derived.Acv
+#   modifies: "ACI318-19 11.5.4.x" mode replace
+#   level: algebraic
+# }

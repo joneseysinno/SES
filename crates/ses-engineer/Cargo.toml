@@ -1,0 +1,20 @@
+[package]
+name = "ses-engineer"
+description = "Engineering quantities, units, and expression types for SES"
+publish = false
+edition.workspace = true
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+ses-core = { workspace = true }
+adele-ring = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+paste = "1"
+proptest = "1"
+trybuild = "1"

@@ -127,10 +127,10 @@ fn load_shell_from_db() -> Result<Option<ShellState>, DbError> {
         .map_err(|e| DbError::Engine(e.to_string()))?;
 
     for record in &rows {
-        if record.address.point.coords.first().copied() == Some(0)
-            && let Ok(state) = decode_shell(&record.data)
-        {
-            return Ok(Some(state));
+        if record.address.point.coords.first().copied() == Some(0) {
+            if let Ok(state) = decode_shell(&record.data) {
+                return Ok(Some(state));
+            }
         }
     }
 

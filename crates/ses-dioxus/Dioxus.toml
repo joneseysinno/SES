@@ -1,0 +1,6 @@
+[application]
+name = "ses-dioxus"
+default_platform = "desktop"
+
+[web.app]
+title = "Structural Engineering Solutions"

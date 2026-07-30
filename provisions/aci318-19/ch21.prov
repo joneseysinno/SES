@@ -1,0 +1,12 @@
+# ACI 318-19 Chapter 21 — placeholder provisions (ses-provision-dsl.md §5.2)
+#
+# provision "ACI318-19 21.2.x" {
+#   kind: parameter
+#   title: "Strength reduction factor, shear, special walls"
+#   value: piecewise(derived.shear_governs_over_flexure) {
+#     == true  => 0.60
+#     otherwise => 0.75
+#   }
+#   narrative: "φ = {value} per Ch. 21 (shear, special structural wall)."
+#   level: rational
+# }

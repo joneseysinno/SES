@@ -1,0 +1,13 @@
+error[E0369]: cannot add `Qty<Stress, ses_engineer::Rational>` to `Qty<L1, ses_engineer::Rational>`
+ --> tests/ui/dim_mismatch.rs:7:16
+  |
+7 |     let _c = a + b;
+  |              - ^ - Qty<Stress, ses_engineer::Rational>
+  |              |
+  |              Qty<L1, ses_engineer::Rational>
+  |
+note: the foreign item type `Qty<L1, ses_engineer::Rational>` doesn't implement `std::ops::Add<Qty<Stress, ses_engineer::Rational>>`
+ --> src/dimtype/qty.rs
+  |
+  | pub struct Qty<D: DimType, S> {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not implement `std::ops::Add<Qty<Stress, ses_engineer::Rational>>`

@@ -1,10 +1,16 @@
 [workspace]
 resolver = "3"
 members = [
+    "crates/ses-core",
+    "crates/ses-engineer",
+    "crates/ses-adapter",
+    "crates/ses-analysis",
+    "crates/ses-provision",
     "crates/ses-shell",
     "crates/ses-modules",
     "crates/ses-ui",
     "crates/ses-app",
+    "crates/ses-dioxus",
 ]
 default-members = ["crates/ses-app"]
 
@@ -16,10 +22,16 @@ license = "MIT"
 authors = ["Jonesey's Innovation"]
 
 [workspace.dependencies]
+adele-ring = "0.1.1"
+infinite-db = "0.4.0"
+ses-core = { path = "crates/ses-core" }
+ses-engineer = { path = "crates/ses-engineer" }
+ses-adapter = { path = "crates/ses-adapter" }
+ses-analysis = { path = "crates/ses-analysis" }
+ses-provision = { path = "crates/ses-provision" }
 ses-shell = { path = "crates/ses-shell" }
 ses-modules = { path = "crates/ses-modules" }
 ses-ui = { path = "crates/ses-ui" }
-infinite-db = "0.4.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 bincode = { version = "2", features = ["serde"] }
