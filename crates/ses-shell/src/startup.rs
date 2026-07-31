@@ -112,6 +112,7 @@ pub fn resolve_startup(
         workspaces,
         active_workspace: active,
         status_message: "Ready".into(),
+        pending_top_bar_actions: Vec::new(),
     }
 }
 

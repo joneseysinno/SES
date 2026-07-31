@@ -25,7 +25,10 @@ pub use engineer_input::EngineerInput;
 pub use field::{EngineerInfo, FieldMeta};
 pub use file_list::{FileList, FileListDef, FileListItem};
 pub use input_container::InputContainer;
-pub use kanban::{Kanban, KanbanCard, KanbanColumn, KanbanDef};
+pub use kanban::{
+    Kanban, KanbanCardKind, KanbanColumn, KanbanDef, SpecificCardSubtask, SpecificCardTask,
+    SpecificKanbanCard, SpecificKanbanCardDef, SummaryKanbanCard, SummaryKanbanCardDef,
+};
 pub use label::{Label, LabelDef};
 pub use metric::{Metric, MetricDef};
 pub use numerical_input::NumericalInput;

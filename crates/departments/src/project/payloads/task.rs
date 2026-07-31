@@ -1,17 +1,17 @@
-use crate::project::payloads::board_config::ColumnId;
-use crate::shared::{Minutes, ProjectId, TaskId};
+use crate::shared::{BoardCardId, Minutes, ProjectId, TaskId};
 use serde::{Deserialize, Serialize};
 use ses_core::testimony::{Testimony, TestimonyKind};
 use ses_core::versioned::{Genesis, Root, Versioned};
 
 /// A checkable unit of work — the source of truth for progress.
+/// Column placement comes from the parent [`super::BoardCard`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Task {
     pub id: TaskId,
     pub project_id: ProjectId,
+    pub card_id: BoardCardId,
     pub title: String,
     pub description: String,
-    pub column_id: ColumnId,
     pub estimate: Minutes,
     pub assignee: Option<String>,
     pub due_utc: Option<i64>,
@@ -23,7 +23,7 @@ pub struct Task {
 }
 
 impl Versioned for Task {
-    const VERSION: u8 = 1;
+    const VERSION: u8 = 2;
     type Supersedes = Root;
     type LineageVia = Genesis;
 }

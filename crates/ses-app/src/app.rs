@@ -3,6 +3,8 @@
 use crate::db::{
     bump_ids_past, load_startup_profile, load_workspaces, save_shell, save_startup_profile,
 };
+use crate::dept_db::{load_or_seed_dept_store, save_dept_store};
+use departments::{DeptStore, DeptStoreCtx};
 use dioxus::prelude::*;
 use ses_modules::UserContext;
 use ses_shell::{FlowBus, ShellState, StartupProfile, factory_workspaces, resolve_startup};
@@ -38,6 +40,7 @@ struct AppInit {
     shell: ShellState,
     modules: Arc<ModuleUiRegistry>,
     profile: StartupProfile,
+    dept: DeptStore,
 }
 
 fn app_init() -> AppInit {
@@ -51,10 +54,12 @@ fn app_init() -> AppInit {
     );
     let shell = resolve_startup(factory, persisted, &profile);
     bump_ids_past(&shell);
+    let dept = load_or_seed_dept_store();
     AppInit {
         shell,
         modules: Arc::new(reg),
         profile,
+        dept,
     }
 }
 
@@ -67,12 +72,14 @@ pub fn App() -> Element {
     let modules: ModulesCtx = use_signal(|| Arc::clone(&init.modules));
     let user: UserCtx = use_signal(UserContext::dev_all_access);
     let startup: StartupCtx = use_signal(|| init.profile.clone());
+    let dept: DeptStoreCtx = use_signal(|| init.dept.clone());
 
     use_context_provider(|| shell);
     use_context_provider(|| flow);
     use_context_provider(|| modules);
     use_context_provider(|| user);
     use_context_provider(|| startup);
+    use_context_provider(|| dept);
 
     use_effect(move || {
         let snapshot = shell.read().clone();
@@ -82,6 +89,11 @@ pub fn App() -> Element {
     use_effect(move || {
         let profile = startup.read().clone();
         save_startup_profile(&profile);
+    });
+
+    use_effect(move || {
+        let snapshot = dept.read().clone();
+        save_dept_store(&snapshot);
     });
 
     rsx! {

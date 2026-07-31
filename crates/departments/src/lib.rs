@@ -5,11 +5,17 @@
 //! in [`shared`].
 
 pub mod shared;
+pub mod store;
 
 #[cfg(feature = "project-management")]
 pub mod project_management;
 #[cfg(feature = "project")]
 pub mod project;
+
+pub use store::{
+    use_dept_store, DeptStore, DeptStoreCtx, MgmtQueryResult, ProjectQueryResult, StoreEffect,
+    StoreError,
+};
 
 use ses_modules::ModuleRegistry;
 use ses_ui::ModuleUiRegistry;

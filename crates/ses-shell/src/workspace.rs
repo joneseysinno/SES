@@ -147,9 +147,20 @@ pub struct ShellState {
     pub workspaces: Vec<WorkspaceDef>,
     pub active_workspace: WorkspaceId,
     pub status_message: String,
+    /// Queued page top-bar action ids (department pages drain these).
+    #[serde(default, skip)]
+    pub pending_top_bar_actions: Vec<String>,
 }
 
 impl ShellState {
+    pub fn push_top_bar_action(&mut self, action_id: impl Into<String>) {
+        self.pending_top_bar_actions.push(action_id.into());
+    }
+
+    pub fn take_top_bar_actions(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.pending_top_bar_actions)
+    }
+
     pub fn active(&self) -> Option<&WorkspaceDef> {
         self.workspaces
             .iter()
@@ -268,6 +279,7 @@ mod tests {
             workspaces: vec![blank("A")],
             active_workspace: WorkspaceId::new(),
             status_message: String::new(),
+            pending_top_bar_actions: Vec::new(),
         };
         let id = s.workspaces[0].id;
         s.active_workspace = id;
@@ -285,6 +297,7 @@ mod tests {
             workspaces: vec![a],
             active_workspace: id,
             status_message: String::new(),
+            pending_top_bar_actions: Vec::new(),
         };
         assert!(s.duplicate_workspace(id));
         assert_eq!(s.workspaces.len(), 2);
@@ -302,6 +315,7 @@ mod tests {
             workspaces: vec![a, b, c],
             active_workspace: active,
             status_message: String::new(),
+            pending_top_bar_actions: Vec::new(),
         };
         assert!(s.reorder_workspace(0, 2));
         assert_eq!(

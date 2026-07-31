@@ -189,6 +189,7 @@ pub fn PageArea(
                 PageTopBarView {
                     bar,
                     on_action: move |action_id: String| {
+                        shell.write().push_top_bar_action(action_id.clone());
                         shell.write().status_message = format!("Top bar: {action_id}");
                     },
                 }

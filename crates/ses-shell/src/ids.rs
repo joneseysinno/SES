@@ -64,6 +64,11 @@ impl PodId {
     pub fn new() -> Self {
         Self(next_u64())
     }
+
+    /// Fixed id for page-authored pods (must not use [`Self::new`] each render).
+    pub const fn stable(id: u64) -> Self {
+        Self(id)
+    }
 }
 
 impl Default for PodId {

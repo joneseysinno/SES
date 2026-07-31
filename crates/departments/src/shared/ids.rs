@@ -17,7 +17,7 @@ pub fn reset_id_counter(start: u64) {
 
 macro_rules! id_type {
     ($name:ident, $prefix:literal) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
         pub struct $name(pub u64);
 
         impl $name {
@@ -46,6 +46,7 @@ macro_rules! id_type {
 
 id_type!(ProjectId, "proj");
 id_type!(TaskId, "task");
+id_type!(BoardCardId, "card");
 id_type!(MilestoneId, "ms");
 id_type!(TimeEntryId, "time");
 id_type!(DocRefId, "doc");

@@ -17,3 +17,25 @@ pub use page_view::PageView;
 pub use pod_shell::PodShell;
 pub use pod_stack::PodStack;
 pub use split_handle::SplitHandle;
+
+use dioxus::prelude::*;
+use ses_shell::{PodDescriptor, PodLayout};
+
+/// Default viewport width until page-area measurement exists.
+pub const PAGE_PODS_VIEWPORT_PX: u32 = 1200;
+
+/// Render a page's pods with the standard viewport assumption.
+pub fn page_pods(
+    pods: Vec<PodDescriptor>,
+    layout: PodLayout,
+    bodies: Vec<(u64, Element)>,
+) -> Element {
+    rsx! {
+        PodStack {
+            pods,
+            layout,
+            viewport_px: PAGE_PODS_VIEWPORT_PX,
+            bodies,
+        }
+    }
+}

@@ -26,7 +26,7 @@ pub struct ContactInfo {
 }
 
 /// Postal address.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct Address {
     pub street: String,
     pub city: String,

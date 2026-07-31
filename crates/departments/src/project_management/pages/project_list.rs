@@ -1,33 +1,66 @@
-use crate::project_management::bridge::mock_projects;
+use crate::project_management::bridge::ProjectMgmtQuery;
+use crate::store::{use_dept_store, MgmtQueryResult};
 use dioxus::prelude::*;
-use ses_ui::PageCtx;
+use ses_ui::{
+    page_pods, DataTable, PageCtx, PodDescriptor, PodKind, TableColumn, TableDef, TableRow,
+};
 
 #[component]
 pub fn ProjectListPage(ctx: PageCtx) -> Element {
-    let projects = mock_projects();
+    let store = use_dept_store();
+    let projects = match store.read().query_mgmt(ProjectMgmtQuery::ListAll {
+        filter: Default::default(),
+    }) {
+        Ok(MgmtQueryResult::Projects(p)) => p,
+        _ => vec![],
+    };
+
+    let def = TableDef {
+        columns: vec![
+            TableColumn {
+                id: "number".into(),
+                title: "Number".into(),
+                sortable: true,
+            },
+            TableColumn {
+                id: "name".into(),
+                title: "Name".into(),
+                sortable: true,
+            },
+            TableColumn {
+                id: "client".into(),
+                title: "Client".into(),
+                sortable: true,
+            },
+            TableColumn {
+                id: "phase".into(),
+                title: "Phase".into(),
+                sortable: true,
+            },
+        ],
+        rows: projects
+            .iter()
+            .map(|p| TableRow {
+                id: p.id.0.to_string(),
+                cells: vec![
+                    p.number.clone(),
+                    p.name.clone(),
+                    p.client.name.clone(),
+                    p.phase.title().into(),
+                ],
+            })
+            .collect(),
+    };
+
+    let pods = vec![PodDescriptor::stable(1, PodKind::Anchor, "Projects")];
+
     rsx! {
         div { class: "ses-page ses-page-project-list",
-            h2 { "Project List" }
-            table { class: "ses-data-table",
-                thead {
-                    tr {
-                        th { "Number" }
-                        th { "Name" }
-                        th { "Client" }
-                        th { "Phase" }
-                    }
-                }
-                tbody {
-                    for p in projects {
-                        tr { key: "{p.id.0}",
-                            td { "{p.number}" }
-                            td { "{p.name}" }
-                            td { "{p.client.name}" }
-                            td { "{p.phase.title()}" }
-                        }
-                    }
-                }
-            }
+            {page_pods(
+                pods,
+                ctx.pod_layout.clone(),
+                vec![(1, rsx! { DataTable { def } })],
+            )}
         }
     }
 }

@@ -25,6 +25,7 @@ pub fn PageView(page: PageDescriptor, leaf_id: ses_shell::LeafId) -> Element {
         leaf_id,
         binding,
         user: user.read().clone(),
+        pod_layout: page.pod_layout.clone(),
     };
 
     modules.read().render_page(&page.module_id, &page.page_id, &ctx)

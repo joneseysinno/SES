@@ -106,6 +106,18 @@ impl PodDescriptor {
         }
     }
 
+    /// Descriptor with a stable id — safe to rebuild every render.
+    pub fn stable(id: u64, kind: PodKind, title: impl Into<String>) -> Self {
+        Self {
+            id: PodId::stable(id),
+            kind,
+            title: title.into(),
+            landmark_label: None,
+            collapsed: false,
+            col_span: 1,
+        }
+    }
+
     pub fn with_landmark(mut self, label: impl Into<String>) -> Self {
         self.landmark_label = Some(label.into());
         self

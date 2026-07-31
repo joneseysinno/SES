@@ -4,7 +4,7 @@ use ses_adapter::payload::{DesignBasis, ProjectStatus};
 use ses_core::testimony::{Testimony, TestimonyKind};
 use ses_core::versioned::{Genesis, Root, Versioned};
 
-/// Portfolio Kanban columns — the project lifecycle.
+/// Project Management Kanban columns — the project lifecycle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ProjectPhase {
     Prospect,

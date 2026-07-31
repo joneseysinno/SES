@@ -63,15 +63,33 @@ pub enum BoardConfigError {
     ColumnHasTasks { id: ColumnId, count: u32 },
 }
 
+impl std::fmt::Display for BoardConfigError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NoColumns => write!(f, "board has no columns"),
+            Self::NoCompleteColumn => write!(f, "board needs a counts_complete column"),
+            Self::DuplicateColumnId(id) => write!(f, "duplicate column id {}", id.0),
+            Self::CompleteAndException(id) => {
+                write!(f, "column {} cannot be both complete and exception", id.0)
+            }
+            Self::ColumnHasTasks { id, count } => {
+                write!(f, "column {} still has {count} tasks", id.0)
+            }
+        }
+    }
+}
+
+impl std::error::Error for BoardConfigError {}
+
 impl BoardConfig {
-    /// Seed board for new projects.
+    /// Structural-engineering starter columns for new projects.
     pub fn factory(project_id: ProjectId) -> Self {
         Self {
             project_id,
             columns: vec![
                 ColumnDef {
-                    id: ColumnId::new("backlog"),
-                    title: "Backlog".into(),
+                    id: ColumnId::new("proposals"),
+                    title: "Proposals".into(),
                     counts_complete: false,
                     is_exception: false,
                     accent: None,
@@ -79,8 +97,8 @@ impl BoardConfig {
                     order: 0,
                 },
                 ColumnDef {
-                    id: ColumnId::new("ready"),
-                    title: "Ready".into(),
+                    id: ColumnId::new("in-design"),
+                    title: "In Design".into(),
                     counts_complete: false,
                     is_exception: false,
                     accent: None,
@@ -88,8 +106,8 @@ impl BoardConfig {
                     order: 1,
                 },
                 ColumnDef {
-                    id: ColumnId::new("in-progress"),
-                    title: "In Progress".into(),
+                    id: ColumnId::new("stamp-review"),
+                    title: "Stamp Review".into(),
                     counts_complete: false,
                     is_exception: false,
                     accent: None,
@@ -97,31 +115,13 @@ impl BoardConfig {
                     order: 2,
                 },
                 ColumnDef {
-                    id: ColumnId::new("blocked"),
-                    title: "Blocked".into(),
-                    counts_complete: false,
-                    is_exception: true,
-                    accent: Some("warn".into()),
-                    limit: None,
-                    order: 3,
-                },
-                ColumnDef {
-                    id: ColumnId::new("review"),
-                    title: "Review".into(),
-                    counts_complete: false,
-                    is_exception: false,
-                    accent: None,
-                    limit: None,
-                    order: 4,
-                },
-                ColumnDef {
-                    id: ColumnId::new("done"),
-                    title: "Done".into(),
+                    id: ColumnId::new("completed"),
+                    title: "Completed".into(),
                     counts_complete: true,
                     is_exception: false,
                     accent: Some("good".into()),
                     limit: None,
-                    order: 5,
+                    order: 3,
                 },
             ],
         }
@@ -169,11 +169,18 @@ impl BoardConfig {
         self.column(id).is_some_and(|c| c.is_exception)
     }
 
-    /// Tasks whose column_id matches no column in this board.
-    pub fn orphans<'a>(&self, tasks: &'a [Task]) -> Vec<&'a Task> {
+    /// Tasks whose parent card column matches no column in this board.
+    pub fn orphans<'a>(
+        &self,
+        tasks: &'a [Task],
+        card_column: impl Fn(&crate::shared::BoardCardId) -> Option<&'a ColumnId>,
+    ) -> Vec<&'a Task> {
         tasks
             .iter()
-            .filter(|t| self.column(&t.column_id).is_none())
+            .filter(|t| match card_column(&t.card_id) {
+                Some(col) => self.column(col).is_none(),
+                None => true,
+            })
             .collect()
     }
 }

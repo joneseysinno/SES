@@ -1,6 +1,7 @@
-use crate::project::payloads::{BoardConfig, Task, TimeEntry};
-use crate::shared::Minutes;
+use crate::project::payloads::{BoardCard, BoardConfig, Task, TimeEntry};
+use crate::shared::{BoardCardId, Minutes};
 use ses_core::Ephemeral;
+use std::collections::HashMap;
 
 /// Visual tone for progress bars.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -27,7 +28,7 @@ pub struct ProjectProgress {
 }
 
 impl Ephemeral for ProjectProgress {
-    const DERIVED_FROM: &'static [&'static str] = &["task", "time-entry", "board-config"];
+    const DERIVED_FROM: &'static [&'static str] = &["task", "time-entry", "board-config", "board-card"];
 }
 
 impl ProjectProgress {
@@ -103,15 +104,26 @@ impl ProjectProgress {
     }
 }
 
-/// Compute the rollup for one project.
-pub fn compute(board: &BoardConfig, tasks: &[Task], entries: &[TimeEntry]) -> ProjectProgress {
+/// Compute the rollup for one project. Column comes from the parent board card.
+pub fn compute(
+    board: &BoardConfig,
+    cards: &[BoardCard],
+    tasks: &[Task],
+    entries: &[TimeEntry],
+) -> ProjectProgress {
+    let card_col: HashMap<BoardCardId, &crate::project::payloads::ColumnId> = cards
+        .iter()
+        .map(|c| (c.id, &c.column_id))
+        .collect();
+
     let mut p = ProjectProgress::zero();
 
     for t in tasks {
         p.total_estimate.0 = p.total_estimate.0.saturating_add(t.estimate.0);
         p.total_task_count = p.total_task_count.saturating_add(1);
 
-        match board.column(&t.column_id) {
+        let column_id = card_col.get(&t.card_id).copied();
+        match column_id.and_then(|id| board.column(id)) {
             Some(col) if col.counts_complete && !col.is_exception => {
                 p.completed_estimate.0 = p.completed_estimate.0.saturating_add(t.estimate.0);
                 p.done_task_count = p.done_task_count.saturating_add(1);
@@ -155,18 +167,23 @@ mod tests {
             .as_secs() as i64
     }
 
-    fn task(
-        id: u64,
-        column: &str,
-        estimate_hours: u32,
-        project_id: ProjectId,
-    ) -> Task {
+    fn card(id: u64, column: &str, project_id: ProjectId) -> BoardCard {
+        BoardCard {
+            id: BoardCardId::from_raw(id),
+            project_id,
+            column_id: ColumnId::new(column),
+            title: format!("Card {id}"),
+            order: id as u32,
+        }
+    }
+
+    fn task(id: u64, card_id: u64, estimate_hours: u32, project_id: ProjectId) -> Task {
         Task {
             id: TaskId::from_raw(id),
             project_id,
+            card_id: BoardCardId::from_raw(card_id),
             title: format!("Task {id}"),
             description: String::new(),
-            column_id: ColumnId::new(column),
             estimate: Minutes::from_hours(estimate_hours),
             assignee: None,
             due_utc: None,
@@ -195,7 +212,7 @@ mod tests {
     #[test]
     fn empty_project_is_zero() {
         let board = BoardConfig::factory(ProjectId::from_raw(1));
-        let p = compute(&board, &[], &[]);
+        let p = compute(&board, &[], &[], &[]);
         assert_eq!(p.fraction(), 0.0);
         assert_eq!(p.burn_fraction(), 0.0);
         assert!(!p.is_unestimated());
@@ -205,11 +222,9 @@ mod tests {
     fn all_done_is_one() {
         let pid = ProjectId::from_raw(1);
         let board = BoardConfig::factory(pid);
-        let tasks = vec![
-            task(1, "done", 4, pid),
-            task(2, "done", 8, pid),
-        ];
-        let p = compute(&board, &tasks, &[]);
+        let cards = vec![card(1, "completed", pid), card(2, "completed", pid)];
+        let tasks = vec![task(1, 1, 4, pid), task(2, 2, 8, pid)];
+        let p = compute(&board, &cards, &tasks, &[]);
         assert!((p.fraction() - 1.0).abs() < f32::EPSILON);
         assert_eq!(p.tone(), ProgressTone::Good);
     }
@@ -218,13 +233,14 @@ mod tests {
     fn weighted_not_count_weighted() {
         let pid = ProjectId::from_raw(1);
         let board = BoardConfig::factory(pid);
-        let mut open = Vec::new();
-        for i in 0..10 {
-            open.push(task(i + 2, "backlog", 1, pid));
+        let mut cards = vec![card(1, "completed", pid)];
+        let mut tasks = vec![task(1, 1, 80, pid)];
+        for i in 0..10u64 {
+            let cid = i + 2;
+            cards.push(card(cid, "proposals", pid));
+            tasks.push(task(cid, cid, 1, pid));
         }
-        let mut tasks = vec![task(1, "done", 80, pid)];
-        tasks.extend(open);
-        let p = compute(&board, &tasks, &[]);
+        let p = compute(&board, &cards, &tasks, &[]);
         assert!((p.fraction() - 0.888).abs() < 0.01);
         assert!((p.fraction() - 0.09).abs() > 0.01);
     }
@@ -233,11 +249,12 @@ mod tests {
     fn zero_estimate_fallback_uses_task_count() {
         let pid = ProjectId::from_raw(1);
         let board = BoardConfig::factory(pid);
-        let mut t1 = task(1, "done", 0, pid);
+        let cards = vec![card(1, "completed", pid), card(2, "proposals", pid)];
+        let mut t1 = task(1, 1, 0, pid);
         t1.estimate = Minutes(0);
-        let mut t2 = task(2, "backlog", 0, pid);
+        let mut t2 = task(2, 2, 0, pid);
         t2.estimate = Minutes(0);
-        let p = compute(&board, &[t1, t2], &[]);
+        let p = compute(&board, &cards, &[t1, t2], &[]);
         assert!((p.fraction() - 0.5).abs() < f32::EPSILON);
         assert!(p.is_unestimated());
     }
@@ -245,9 +262,19 @@ mod tests {
     #[test]
     fn blocked_task_forces_warn() {
         let pid = ProjectId::from_raw(1);
-        let board = BoardConfig::factory(pid);
-        let tasks = vec![task(1, "blocked", 4, pid)];
-        let p = compute(&board, &tasks, &[]);
+        let mut board = BoardConfig::factory(pid);
+        board.columns.push(ColumnDef {
+            id: ColumnId::new("blocked"),
+            title: "Blocked".into(),
+            counts_complete: false,
+            is_exception: true,
+            accent: Some("warn".into()),
+            limit: None,
+            order: 10,
+        });
+        let cards = vec![card(1, "blocked", pid)];
+        let tasks = vec![task(1, 1, 4, pid)];
+        let p = compute(&board, &cards, &tasks, &[]);
         assert_eq!(p.blocked_task_count, 1);
         assert_eq!(p.tone(), ProgressTone::Warn);
     }
@@ -256,7 +283,8 @@ mod tests {
     fn burn_over_completion_forces_over() {
         let pid = ProjectId::from_raw(1);
         let board = BoardConfig::factory(pid);
-        let tasks = vec![task(1, "in-progress", 100, pid)];
+        let cards = vec![card(1, "in-design", pid)];
+        let tasks = vec![task(1, 1, 100, pid)];
         let entries = vec![TimeEntry {
             id: TimeEntryId::from_raw(1),
             project_id: pid,
@@ -267,7 +295,7 @@ mod tests {
             note: String::new(),
             billable: true,
         }];
-        let p = compute(&board, &tasks, &entries);
+        let p = compute(&board, &cards, &tasks, &entries);
         assert_eq!(p.tone(), ProgressTone::Over);
     }
 
@@ -275,7 +303,8 @@ mod tests {
     fn saturating_add_at_max_does_not_panic() {
         let pid = ProjectId::from_raw(1);
         let board = BoardConfig::factory(pid);
-        let mut t = task(1, "done", 0, pid);
+        let cards = vec![card(1, "completed", pid)];
+        let mut t = task(1, 1, 0, pid);
         t.estimate = Minutes(u32::MAX);
         let entries = vec![TimeEntry {
             id: TimeEntryId::from_raw(1),
@@ -287,7 +316,7 @@ mod tests {
             note: String::new(),
             billable: true,
         }];
-        let p = compute(&board, &[t], &entries);
+        let p = compute(&board, &cards, &[t], &entries);
         assert_eq!(p.total_estimate.0, u32::MAX);
         assert_eq!(p.spent_billable.0, u32::MAX);
     }
@@ -296,12 +325,17 @@ mod tests {
     fn two_complete_columns_both_count() {
         let pid = ProjectId::from_raw(1);
         let board = board_with_extra_complete(pid);
-        let tasks = vec![
-            task(1, "done", 10, pid),
-            task(2, "shipped", 5, pid),
-            task(3, "backlog", 5, pid),
+        let cards = vec![
+            card(1, "completed", pid),
+            card(2, "shipped", pid),
+            card(3, "proposals", pid),
         ];
-        let p = compute(&board, &tasks, &[]);
+        let tasks = vec![
+            task(1, 1, 10, pid),
+            task(2, 2, 5, pid),
+            task(3, 3, 5, pid),
+        ];
+        let p = compute(&board, &cards, &tasks, &[]);
         assert_eq!(p.completed_estimate, Minutes::from_hours(15));
         assert!((p.fraction() - 0.75).abs() < f32::EPSILON);
     }
@@ -321,8 +355,9 @@ mod tests {
                 order: 0,
             }],
         };
-        let tasks = vec![task(1, "weird", 10, pid)];
-        let p = compute(&board, &tasks, &[]);
+        let cards = vec![card(1, "weird", pid)];
+        let tasks = vec![task(1, 1, 10, pid)];
+        let p = compute(&board, &cards, &tasks, &[]);
         assert_eq!(p.done_task_count, 0);
         assert_eq!(p.open_task_count, 1);
         assert_eq!(p.fraction(), 0.0);
@@ -332,8 +367,9 @@ mod tests {
     fn orphan_counts_open_and_warns() {
         let pid = ProjectId::from_raw(1);
         let board = BoardConfig::factory(pid);
-        let tasks = vec![task(1, "removed-column", 4, pid)];
-        let p = compute(&board, &tasks, &[]);
+        let cards = vec![card(1, "removed-column", pid)];
+        let tasks = vec![task(1, 1, 4, pid)];
+        let p = compute(&board, &cards, &tasks, &[]);
         assert_eq!(p.orphan_task_count, 1);
         assert_eq!(p.open_task_count, 1);
         assert_eq!(p.done_task_count, 0);
@@ -344,13 +380,14 @@ mod tests {
     fn renaming_column_title_does_not_change_numbers() {
         let pid = ProjectId::from_raw(1);
         let mut board = BoardConfig::factory(pid);
-        let tasks = vec![task(1, "done", 10, pid), task(2, "backlog", 10, pid)];
-        let before = compute(&board, &tasks, &[]);
+        let cards = vec![card(1, "completed", pid), card(2, "proposals", pid)];
+        let tasks = vec![task(1, 1, 10, pid), task(2, 2, 10, pid)];
+        let before = compute(&board, &cards, &tasks, &[]);
 
-        if let Some(col) = board.columns.iter_mut().find(|c| c.id.0 == "done") {
+        if let Some(col) = board.columns.iter_mut().find(|c| c.id.0 == "completed") {
             col.title = "Finished".into();
         }
-        let after = compute(&board, &tasks, &[]);
+        let after = compute(&board, &cards, &tasks, &[]);
         assert_eq!(before, after);
     }
 
@@ -358,11 +395,12 @@ mod tests {
     fn reordering_columns_does_not_change_numbers() {
         let pid = ProjectId::from_raw(1);
         let mut board = BoardConfig::factory(pid);
-        let tasks = vec![task(1, "done", 10, pid), task(2, "backlog", 10, pid)];
-        let before = compute(&board, &tasks, &[]);
+        let cards = vec![card(1, "completed", pid), card(2, "proposals", pid)];
+        let tasks = vec![task(1, 1, 10, pid), task(2, 2, 10, pid)];
+        let before = compute(&board, &cards, &tasks, &[]);
 
         board.columns.reverse();
-        let after = compute(&board, &tasks, &[]);
+        let after = compute(&board, &cards, &tasks, &[]);
         assert_eq!(before, after);
     }
 
@@ -370,7 +408,8 @@ mod tests {
     fn nonbillable_never_affects_burn() {
         let pid = ProjectId::from_raw(1);
         let board = BoardConfig::factory(pid);
-        let tasks = vec![task(1, "in-progress", 10, pid)];
+        let cards = vec![card(1, "in-design", pid)];
+        let tasks = vec![task(1, 1, 10, pid)];
         let entries = vec![TimeEntry {
             id: TimeEntryId::from_raw(1),
             project_id: pid,
@@ -381,7 +420,7 @@ mod tests {
             note: String::new(),
             billable: false,
         }];
-        let p = compute(&board, &tasks, &entries);
+        let p = compute(&board, &cards, &tasks, &entries);
         assert_eq!(p.burn_fraction(), 0.0);
         assert_eq!(p.spent_nonbillable, Minutes::from_hours(8));
         assert!((p.nonbillable_share() - 1.0).abs() < f32::EPSILON);
@@ -413,7 +452,7 @@ mod tests {
                 billable: false,
             },
         ];
-        let p = compute(&board, &[], &entries);
+        let p = compute(&board, &[], &[], &entries);
         assert_eq!(p.spent_total(), Minutes::from_hours(5));
     }
 
@@ -421,7 +460,7 @@ mod tests {
     fn zero_entries_no_divide_by_zero() {
         let pid = ProjectId::from_raw(1);
         let board = BoardConfig::factory(pid);
-        let p = compute(&board, &[], &[]);
+        let p = compute(&board, &[], &[], &[]);
         assert_eq!(p.burn_fraction(), 0.0);
         assert_eq!(p.nonbillable_share(), 0.0);
     }

@@ -92,7 +92,65 @@
   background: color-mix(in srgb, var(--ses-accent) 8%, transparent);
 }
 
-.ses-kanban-unsorted {
+.ses-kanban-unsorted,
+.ses-kanban-add-col {
   border-style: dashed;
   opacity: 0.9;
+  flex-basis: 200px;
+  width: 200px;
+}
+
+.ses-kanban-add-col-btn {
+  width: 100%;
+}
+
+.ses-kanban-col-input {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 4px 6px;
+  background: var(--ses-bg-raised);
+  border: 1px solid var(--ses-border);
+  color: var(--ses-text);
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.ses-kanban-task-list,
+.ses-kanban-subtask-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ses-kanban-subtask-list {
+  margin: 4px 0 0 16px;
+}
+
+.ses-kanban-task-row,
+.ses-kanban-subtask label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ses-kanban-task-meta {
+  margin-left: auto;
+  color: var(--ses-text-dim);
+  font-size: 10px;
+}
+
+.ses-kanban-task-done span {
+  text-decoration: line-through;
+  color: var(--ses-text-dim);
+}
+
+.ses-kanban-mini-btn {
+  font-size: 11px;
+  margin-top: 4px;
+  padding: 2px 4px;
 }

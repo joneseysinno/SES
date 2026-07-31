@@ -17,6 +17,7 @@ ses-core = { workspace = true }
 ses-adapter = { workspace = true }
 dioxus = { workspace = true }
 serde = { workspace = true }
+thiserror = { workspace = true }
 
 [features]
 default = ["project-management", "project"]

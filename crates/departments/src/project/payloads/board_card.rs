@@ -1,26 +1,26 @@
-use crate::shared::{MilestoneId, ProjectId, TaskId};
+use crate::project::payloads::board_config::ColumnId;
+use crate::shared::{BoardCardId, ProjectId};
 use serde::{Deserialize, Serialize};
 use ses_core::testimony::{Testimony, TestimonyKind};
 use ses_core::versioned::{Genesis, Root, Versioned};
 
-/// A dated project milestone with optional gating tasks.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Milestone {
-    pub id: MilestoneId,
+/// A named group of tasks on a project Kanban board (e.g. "Design Criteria").
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct BoardCard {
+    pub id: BoardCardId,
     pub project_id: ProjectId,
+    pub column_id: ColumnId,
     pub title: String,
-    pub target_utc: i64,
-    pub actual_utc: Option<i64>,
-    pub gating_tasks: Vec<TaskId>,
+    pub order: u32,
 }
 
-impl Versioned for Milestone {
+impl Versioned for BoardCard {
     const VERSION: u8 = 1;
     type Supersedes = Root;
     type LineageVia = Genesis;
 }
 
-impl Testimony for Milestone {
+impl Testimony for BoardCard {
     const KIND: TestimonyKind = TestimonyKind::Authored;
     const WITNESSES: &'static [&'static str] = &["project manager"];
 }

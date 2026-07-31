@@ -2,5 +2,6 @@
 
 pub mod app;
 pub mod db;
+pub mod dept_db;
 
 pub use app::App;

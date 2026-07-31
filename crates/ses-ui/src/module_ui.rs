@@ -2,7 +2,7 @@
 
 use dioxus::prelude::*;
 use ses_modules::{ModuleRegistry, SesModule, UserContext};
-use ses_shell::{LeafId, ModuleId, PageId, WorkspaceBinding, WorkspaceId};
+use ses_shell::{LeafId, ModuleId, PageId, PodLayout, WorkspaceBinding, WorkspaceId};
 use std::collections::HashMap;
 
 /// Context passed to [`SesModuleUi::render_page`].
@@ -12,6 +12,7 @@ pub struct PageCtx {
     pub leaf_id: LeafId,
     pub binding: WorkspaceBinding,
     pub user: UserContext,
+    pub pod_layout: PodLayout,
 }
 
 impl PageCtx {

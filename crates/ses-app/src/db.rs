@@ -130,10 +130,15 @@ pub fn save_shell(state: &ShellState) {
     }
 }
 
+/// Platform data root (`LOCALAPPDATA` / `~/.local/share` / temp).
+#[cfg(feature = "desktop")]
+pub fn data_dir_base() -> std::path::PathBuf {
+    dirs_next_data()
+}
+
 #[cfg(feature = "desktop")]
 fn data_dir() -> std::path::PathBuf {
-    let base = dirs_next_data();
-    let path = base.join("ses").join("db");
+    let path = data_dir_base().join("ses").join("db");
     let _ = std::fs::create_dir_all(&path);
     path
 }
