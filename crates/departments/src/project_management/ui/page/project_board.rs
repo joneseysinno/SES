@@ -2,7 +2,7 @@ use crate::project_management::bridge::{
     NewProjectParams, NewProposalParams, ProjectMgmtCommand, ProjectMgmtQuery,
 };
 use crate::project_management::payloads::ProjectPhase;
-use crate::project::progress::ProgressTone as DeptProgressTone;
+use crate::shared::ui::progress_tone;
 use crate::store::{use_dept_store, MgmtQueryResult, StoreEffect};
 use dioxus::prelude::*;
 use ses_ui::{
@@ -116,7 +116,7 @@ pub fn ProjectBoardPage(ctx: PageCtx) -> Element {
             let fraction = progress.map(|pr| pr.fraction()).unwrap_or(0.0);
             let spent = progress.map(|pr| pr.spent_fraction());
             let tone = progress
-                .map(|pr| map_tone(pr.tone()))
+                .map(|pr| progress_tone(pr.tone()))
                 .unwrap_or(ProgressTone::Neutral);
             let caption = progress.map(|pr| {
                 format!(
@@ -204,14 +204,5 @@ pub fn ProjectBoardPage(ctx: PageCtx) -> Element {
                 )],
             )}
         }
-    }
-}
-
-fn map_tone(t: DeptProgressTone) -> ProgressTone {
-    match t {
-        DeptProgressTone::Neutral => ProgressTone::Neutral,
-        DeptProgressTone::Good => ProgressTone::Good,
-        DeptProgressTone::Warn => ProgressTone::Warn,
-        DeptProgressTone::Over => ProgressTone::Over,
     }
 }

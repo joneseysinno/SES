@@ -7,7 +7,7 @@ use crate::project::bridge::{
     reassign_cards, NewBoardCardParams, NewDocRefParams, NewMilestoneParams, NewTaskParams,
     NewTimeEntryParams, ProjectCommand, ProjectQuery,
 };
-use crate::project::module::instantiate_for;
+use crate::project::ui::workspace::for_project;
 use crate::project::payloads::{
     BoardCard, BoardConfig, BoardConfigError, ChecklistItem, ColumnId, DocCategory, DocRef,
     Milestone, Priority, Task, TimeEntry,
@@ -307,7 +307,7 @@ impl DeptStore {
                     .projects
                     .get(&project_id)
                     .ok_or_else(|| StoreError::NotFound(format!("project {project_id}")))?;
-                let ws = instantiate_for(project_id, &p.name);
+                let ws = for_project(project_id, &p.name);
                 Ok(StoreEffect::OpenWorkspace(ws))
             }
         }

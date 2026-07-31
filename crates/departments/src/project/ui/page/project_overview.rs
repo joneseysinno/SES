@@ -1,25 +1,9 @@
-mod project_analysis;
-mod project_docs;
-mod project_timeline;
-mod task_board;
-mod task_detail;
-mod time_tracking;
-
-pub use project_analysis::ProjectAnalysisPage;
-pub use project_docs::ProjectDocsPage;
-pub use project_timeline::ProjectTimelinePage;
-pub use task_board::TaskBoardPage;
-pub use task_detail::TaskDetailPage;
-pub use time_tracking::TimeTrackingPage;
-
 use crate::project::bridge::ProjectQuery;
-use crate::project::progress::ProgressTone as DeptProgressTone;
 use crate::shared::ProjectId;
 use crate::store::{use_dept_store, ProjectQueryResult};
 use dioxus::prelude::*;
 use ses_ui::{
     page_pods, Label, LabelDef, PageCtx, PodDescriptor, PodKind, ProgressBar, ProgressDef,
-    ProgressTone,
 };
 
 #[component]
@@ -38,7 +22,7 @@ pub fn ProjectOverviewPage(ctx: PageCtx) -> Element {
                 Ok(ProjectQueryResult::Progress(p)) => p,
                 _ => crate::project::progress::ProjectProgress::zero(),
             };
-            let tone = map_tone(progress.tone());
+            let tone = crate::shared::ui::progress_tone(progress.tone());
             rsx! {
                 ProgressBar {
                     def: ProgressDef {
@@ -73,14 +57,5 @@ pub fn ProjectOverviewPage(ctx: PageCtx) -> Element {
         div { class: "ses-page ses-page-project-overview",
             {page_pods(pods, ctx.pod_layout.clone(), vec![(1, body)])}
         }
-    }
-}
-
-fn map_tone(t: DeptProgressTone) -> ProgressTone {
-    match t {
-        DeptProgressTone::Neutral => ProgressTone::Neutral,
-        DeptProgressTone::Good => ProgressTone::Good,
-        DeptProgressTone::Warn => ProgressTone::Warn,
-        DeptProgressTone::Over => ProgressTone::Over,
     }
 }

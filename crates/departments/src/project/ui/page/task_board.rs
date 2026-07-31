@@ -2,14 +2,14 @@ use crate::project::bridge::{
     NewBoardCardParams, NewTaskParams, ProjectCommand, ProjectQuery,
 };
 use crate::project::payloads::{BoardCard, ColumnDef, ColumnId, Task};
-use crate::project::progress::ProgressTone as DeptProgressTone;
+use crate::shared::ui::progress_tone;
 use crate::shared::{BoardCardId, ProjectId, TaskId};
 use crate::store::{use_dept_store, ProjectQueryResult};
 use dioxus::prelude::*;
 use ses_ui::{
     page_pods, use_shell, Kanban, KanbanCardKind, KanbanColumn, KanbanDef, Label, LabelDef, PageCtx,
-    PodDescriptor, PodKind, ProgressBar, ProgressDef, ProgressTone, SpecificCardSubtask,
-    SpecificCardTask, SpecificKanbanCardDef,
+    PodDescriptor, PodKind, ProgressBar, ProgressDef, SpecificCardSubtask, SpecificCardTask,
+    SpecificKanbanCardDef,
 };
 
 #[component]
@@ -85,7 +85,7 @@ pub fn TaskBoardPage(ctx: PageCtx) -> Element {
     };
     drop(s);
 
-    let tone = map_tone(progress.tone());
+    let tone = progress_tone(progress.tone());
 
     let columns: Vec<KanbanColumn> = board
         .columns
@@ -314,14 +314,5 @@ pub fn TaskBoardPage(ctx: PageCtx) -> Element {
                 ],
             )}
         }
-    }
-}
-
-fn map_tone(t: DeptProgressTone) -> ProgressTone {
-    match t {
-        DeptProgressTone::Neutral => ProgressTone::Neutral,
-        DeptProgressTone::Good => ProgressTone::Good,
-        DeptProgressTone::Warn => ProgressTone::Warn,
-        DeptProgressTone::Over => ProgressTone::Over,
     }
 }

@@ -1,12 +1,12 @@
 use crate::project::bridge::ProjectQuery;
-use crate::project::progress::ProgressTone as DeptProgressTone;
 use crate::project_management::bridge::ProjectMgmtQuery;
+use crate::shared::ui::progress_tone;
 use crate::shared::ProjectId;
 use crate::store::{use_dept_store, MgmtQueryResult, ProjectQueryResult};
 use dioxus::prelude::*;
 use ses_ui::{
     page_pods, Badge, BadgeDef, BadgeTone, Label, LabelDef, PageCtx, PodDescriptor, PodKind,
-    ProgressBar, ProgressDef, ProgressTone,
+    ProgressBar, ProgressDef,
 };
 
 #[component]
@@ -35,7 +35,7 @@ pub fn ProjectSummaryPage(ctx: PageCtx) -> Element {
                 Ok(ProjectQueryResult::Progress(pr)) => pr,
                 _ => crate::project::progress::ProjectProgress::zero(),
             };
-            let tone = map_tone(progress.tone());
+            let tone = progress_tone(progress.tone());
             rsx! {
                 Label {
                     def: LabelDef::new(format!("{} · {}", p.name, p.number)),
@@ -79,14 +79,5 @@ pub fn ProjectSummaryPage(ctx: PageCtx) -> Element {
         div { class: "ses-page ses-page-project-summary",
             {page_pods(pods, ctx.pod_layout.clone(), vec![(1, body)])}
         }
-    }
-}
-
-fn map_tone(t: DeptProgressTone) -> ProgressTone {
-    match t {
-        DeptProgressTone::Neutral => ProgressTone::Neutral,
-        DeptProgressTone::Good => ProgressTone::Good,
-        DeptProgressTone::Warn => ProgressTone::Warn,
-        DeptProgressTone::Over => ProgressTone::Over,
     }
 }
