@@ -1,17 +1,24 @@
+pub mod new_project_dialog;
+pub mod new_proposal_dialog;
+pub mod portfolio_overview;
 pub mod project_board;
 pub mod project_list;
+pub mod project_metrics;
 pub mod project_summary;
 pub mod proposal_editor;
-pub mod project_metrics;
 
+pub use new_project_dialog::NewProjectDialog;
+pub use new_proposal_dialog::NewProposalDialog;
+pub use portfolio_overview::PortfolioOverviewPage;
 pub use project_board::ProjectBoardPage;
 pub use project_list::ProjectListPage;
+pub use project_metrics::ProjectMetricsPage;
 pub use project_summary::ProjectSummaryPage;
 pub use proposal_editor::ProposalEditorPage;
-pub use project_metrics::ProjectMetricsPage;
 
 /// Stable page id strings. These are persisted inside `PageDescriptor`
 /// in saved workspaces — treat them as a data contract, not a label.
+pub const PORTFOLIO_OVERVIEW: &str = "portfolio-overview";
 pub const PROJECT_BOARD: &str = "project-board";
 pub const PROJECT_LIST: &str = "project-list";
 pub const PROJECT_SUMMARY: &str = "project-summary";
@@ -22,6 +29,7 @@ pub const PROJECT_METRICS: &str = "project-metrics";
 /// entry; `ui.rs` dispatches one arm per entry. Adding a page means adding
 /// it here first.
 pub const ALL: &[&str] = &[
+    PORTFOLIO_OVERVIEW,
     PROJECT_BOARD,
     PROJECT_LIST,
     PROJECT_SUMMARY,
@@ -32,6 +40,7 @@ pub const ALL: &[&str] = &[
 /// Exhaustive page enum for dispatch. Built from the same roster as [`ALL`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Page {
+    PortfolioOverview,
     ProjectBoard,
     ProjectList,
     ProjectSummary,
@@ -42,6 +51,7 @@ pub enum Page {
 impl Page {
     pub fn from_id(id: &str) -> Option<Self> {
         match id {
+            PORTFOLIO_OVERVIEW => Some(Self::PortfolioOverview),
             PROJECT_BOARD => Some(Self::ProjectBoard),
             PROJECT_LIST => Some(Self::ProjectList),
             PROJECT_SUMMARY => Some(Self::ProjectSummary),
@@ -53,6 +63,7 @@ impl Page {
 
     pub fn id(self) -> &'static str {
         match self {
+            Self::PortfolioOverview => PORTFOLIO_OVERVIEW,
             Self::ProjectBoard => PROJECT_BOARD,
             Self::ProjectList => PROJECT_LIST,
             Self::ProjectSummary => PROJECT_SUMMARY,

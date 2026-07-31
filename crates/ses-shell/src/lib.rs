@@ -12,7 +12,9 @@ pub mod pod;
 pub mod startup;
 pub mod workspace;
 
-pub use defaults::{blank_workspace, core_factory_workspaces, default_shell, factory_workspaces};
+pub use defaults::{blank_workspace, core_factory_workspaces, factory_workspaces};
+#[allow(deprecated)]
+pub use defaults::default_shell;
 pub use flow::{FlowBus, FlowChannelId, FlowSlot, FlowValue};
 pub use ids::{LeafId, ModuleId, PodId, WorkspaceId, reset_id_counter};
 pub use landmark::{LandmarkAnchor, LandmarkDef, LandmarkIcon, LandmarkId};
@@ -23,8 +25,8 @@ pub use ops::{
 };
 pub use page::{
     Axis, IoLayout, IoPlacement, PageDescriptor, PageId, PageLeaf, PageNode, PageTopBar,
-    TopBarAlign, TopBarHeight, TopBarSlot, TopBarSlotKind,
+    TopBarAlign, TopBarHeight, TopBarSlot, TopBarSlotKind, interpolate_top_bar,
 };
 pub use pod::{PodDescriptor, PodKind, PodLayout};
-pub use startup::{StartupProfile, resolve_startup};
+pub use startup::{CURRENT_SCHEMA_VERSION, StartupProfile, migrate, resolve_startup};
 pub use workspace::{PageFilter, ShellState, WorkspaceBinding, WorkspaceDef};

@@ -169,16 +169,8 @@ pub fn AppRibbon() -> Element {
                                                     *startup.write() =
                                                         ses_shell::StartupProfile::default();
                                                     let mods = modules.read();
-                                                    let factory = ses_shell::factory_workspaces(
-                                                        &[],
-                                                        mods.logical.all_factory_workspaces(),
-                                                    );
-                                                    let state = ses_shell::resolve_startup(
-                                                        factory,
-                                                        Vec::new(),
-                                                        &ses_shell::StartupProfile::default(),
-                                                    );
-                                                    *shell.write() = state;
+                                                    *shell.write() =
+                                                        crate::workspace::reset_to_factory(&mods);
                                                     shell.write().status_message =
                                                         "Reset all to factory".into();
                                                     open.set(None);

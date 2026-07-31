@@ -4,6 +4,18 @@
 use crate::ids::{ModuleId, WorkspaceId};
 use crate::workspace::{ShellState, WorkspaceDef};
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
+
+/// Migration marker. Bump when a release must rewrite persisted state.
+pub const CURRENT_SCHEMA_VERSION: u16 = 1;
+
+/// Seed keys from the scaffolding era. Dropped once, at v0 → v1.
+const RETIRED_SEED_KEYS: &[&str] = &[
+    "core/layout",
+    "core/analysis",
+    "core/documentation",
+    "project/template", // was seeded as a tab; is a template
+];
 
 /// User-owned startup defaults. Factory seed is overlayed underneath.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -19,6 +31,9 @@ pub struct StartupProfile {
     pub suppressed_factory: Vec<String>,
     /// When true, factory seeding is skipped entirely on launch.
     pub factory_seed_disabled: bool,
+    /// Migration marker. Bump when a release must rewrite persisted state.
+    #[serde(default)]
+    pub schema_version: u16,
 }
 
 impl Default for StartupProfile {
@@ -29,8 +44,32 @@ impl Default for StartupProfile {
             enabled_modules: Vec::new(),
             suppressed_factory: Vec::new(),
             factory_seed_disabled: false,
+            schema_version: CURRENT_SCHEMA_VERSION,
         }
     }
+}
+
+/// One-time rewrite of persisted state. Idempotent: running it twice is a no-op.
+pub fn migrate(profile: &mut StartupProfile, persisted: &mut Vec<WorkspaceDef>) -> bool {
+    if profile.schema_version >= CURRENT_SCHEMA_VERSION {
+        return false;
+    }
+    persisted.retain(|w| {
+        w.seed_key
+            .as_deref()
+            .map_or(true, |k| !RETIRED_SEED_KEYS.contains(&k))
+    });
+    // Ids of dropped workspaces must not linger in the ordering list.
+    let live: HashSet<_> = persisted.iter().map(|w| w.id).collect();
+    profile.workspace_order.retain(|id| live.contains(id));
+    if profile
+        .active_workspace
+        .is_some_and(|id| !live.contains(&id))
+    {
+        profile.active_workspace = None;
+    }
+    profile.schema_version = CURRENT_SCHEMA_VERSION;
+    true
 }
 
 /// Merge factory seed with the user's profile. User always wins.
@@ -41,7 +80,8 @@ impl Default for StartupProfile {
 /// 4. Overlay persisted workspaces — a persisted workspace with the same
 ///    seed key REPLACES the factory version (user edits survive upgrades).
 /// 5. Append user-created workspaces (no seed key, or unmatched).
-/// 6. Order by `workspace_order`; unlisted go to the end in creation order.
+/// 6. Sort by `seed_order` (stable).
+/// 7. Order by `workspace_order`; unlisted go to the end in creation order.
 pub fn resolve_startup(
     factory: Vec<WorkspaceDef>,
     persisted: Vec<WorkspaceDef>,
@@ -83,6 +123,9 @@ pub fn resolve_startup(
             workspaces.push(ws.clone());
         }
     }
+
+    // Deterministic factory tab order before the user's explicit order wins.
+    workspaces.sort_by_key(|w| w.seed_order);
 
     // Order by profile.workspace_order; unlisted appended in current order.
     if !profile.workspace_order.is_empty() {
@@ -199,5 +242,91 @@ mod tests {
             vec!["C", "A", "B"]
         );
         assert_eq!(state.active_workspace, c.id);
+    }
+
+    #[test]
+    fn seed_order_sorts_before_workspace_order() {
+        let home = seeded("Home", "home/dashboard").with_seed_order(10);
+        let pm = seeded("PM", "project-mgmt/main").with_seed_order(20);
+        // Inserted in reverse registration order — seed_order still wins.
+        let state = resolve_startup(vec![pm.clone(), home.clone()], Vec::new(), &StartupProfile::default());
+        assert_eq!(
+            state
+                .workspaces
+                .iter()
+                .map(|w| w.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["Home", "PM"]
+        );
+    }
+
+    #[test]
+    fn equal_seed_orders_keep_insertion_order() {
+        let a = seeded("A", "a").with_seed_order(10);
+        let b = seeded("B", "b").with_seed_order(10);
+        let state = resolve_startup(vec![a, b], Vec::new(), &StartupProfile::default());
+        assert_eq!(
+            state
+                .workspaces
+                .iter()
+                .map(|w| w.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["A", "B"]
+        );
+    }
+
+    #[test]
+    fn explicit_workspace_order_overrides_seed_order() {
+        let home = seeded("Home", "home/dashboard").with_seed_order(10);
+        let pm = seeded("PM", "project-mgmt/main").with_seed_order(20);
+        let profile = StartupProfile {
+            workspace_order: vec![pm.id, home.id],
+            ..Default::default()
+        };
+        let state = resolve_startup(vec![home.clone(), pm.clone()], Vec::new(), &profile);
+        assert_eq!(
+            state
+                .workspaces
+                .iter()
+                .map(|w| w.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["PM", "Home"]
+        );
+    }
+
+    #[test]
+    fn migrate_drops_retired_keys_once() {
+        let layout = seeded("Layout", "core/layout");
+        let analysis = seeded("Analysis", "core/analysis");
+        let docs = seeded("Docs", "core/documentation");
+        let template = seeded("Project", "project/template");
+        let custom = user("Mine");
+        let mut persisted = vec![layout.clone(), analysis, docs, template, custom.clone()];
+        let mut profile = StartupProfile {
+            schema_version: 0,
+            workspace_order: vec![layout.id, custom.id],
+            active_workspace: Some(layout.id),
+            ..Default::default()
+        };
+        assert!(migrate(&mut profile, &mut persisted));
+        assert_eq!(profile.schema_version, CURRENT_SCHEMA_VERSION);
+        assert_eq!(persisted.len(), 1);
+        assert_eq!(persisted[0].id, custom.id);
+        assert_eq!(profile.workspace_order, vec![custom.id]);
+        assert!(profile.active_workspace.is_none());
+        assert!(!migrate(&mut profile, &mut persisted));
+    }
+
+    #[test]
+    fn migrate_keeps_user_workspace_without_seed_key() {
+        let custom = user("Mine");
+        let mut persisted = vec![custom.clone()];
+        let mut profile = StartupProfile {
+            schema_version: 0,
+            ..Default::default()
+        };
+        assert!(migrate(&mut profile, &mut persisted));
+        assert_eq!(persisted.len(), 1);
+        assert_eq!(persisted[0].id, custom.id);
     }
 }

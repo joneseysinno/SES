@@ -7,7 +7,7 @@
 //!
 //! Persistence is desktop-only (`feature = "desktop"`). Web uses in-memory defaults.
 
-use ses_shell::{ShellState, StartupProfile, WorkspaceDef, default_shell};
+use ses_shell::{ShellState, StartupProfile, WorkspaceDef};
 use thiserror::Error;
 
 pub const SPACE_UI_WORKSPACES: u64 = 1;
@@ -22,8 +22,16 @@ pub enum DbError {
     Codec(String),
 }
 
+/// `SES_RESET_UI=1` discards persisted UI state at launch. Domain data untouched.
+fn reset_requested() -> bool {
+    std::env::var("SES_RESET_UI").map(|v| v == "1").unwrap_or(false)
+}
+
 /// Load startup profile from disk, or default.
 pub fn load_startup_profile() -> StartupProfile {
+    if reset_requested() {
+        return StartupProfile::default();
+    }
     #[cfg(feature = "desktop")]
     {
         match load_startup_from_db() {
@@ -57,6 +65,9 @@ pub fn save_startup_profile(profile: &StartupProfile) {
 
 /// Load persisted workspaces only (not a full ShellState).
 pub fn load_workspaces() -> Vec<WorkspaceDef> {
+    if reset_requested() {
+        return Vec::new();
+    }
     #[cfg(feature = "desktop")]
     {
         match load_shell_from_db() {
@@ -71,36 +82,6 @@ pub fn load_workspaces() -> Vec<WorkspaceDef> {
     #[cfg(not(feature = "desktop"))]
     {
         Vec::new()
-    }
-}
-
-/// Load shell state from disk, or seed defaults.
-/// Prefer resolving via [`ses_shell::resolve_startup`] with a module registry
-/// when department factory seeds are available.
-pub fn load_or_default_shell() -> ShellState {
-    #[cfg(feature = "desktop")]
-    {
-        match load_shell_from_db() {
-            Ok(Some(state)) => {
-                bump_ids_past(&state);
-                state
-            }
-            Ok(None) => {
-                let state = default_shell();
-                if let Err(e) = save_shell_to_db(&state) {
-                    eprintln!("ses: could not seed layout db: {e}");
-                }
-                state
-            }
-            Err(e) => {
-                eprintln!("ses: layout db unavailable ({e}); using defaults");
-                default_shell()
-            }
-        }
-    }
-    #[cfg(not(feature = "desktop"))]
-    {
-        default_shell()
     }
 }
 

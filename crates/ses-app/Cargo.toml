@@ -30,3 +30,6 @@ thiserror = { workspace = true }
 default = ["desktop"]
 desktop = ["dioxus/desktop", "ses-ui/desktop", "dep:infinite-db"]
 web = ["dioxus/web", "ses-ui/web"]
+dev-stubs = []      # core-ui / analysis / documentation modules
+demo-seed = []      # fabricated project on first launch
+dev-workspaces = ["ses-shell/dev-workspaces"]

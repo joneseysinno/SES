@@ -6,7 +6,8 @@ use ses_shell::{
     WorkspaceBinding, WorkspaceDef, WorkspaceId,
 };
 
-/// The unbound Project department template workspace.
+/// The unbound Project department template workspace. Never seeded as a tab
+/// — see [`SesModule::template_workspace`](ses_modules::SesModule::template_workspace).
 pub fn template() -> WorkspaceDef {
     let right = PageNode::split(
         Axis::Vertical,
@@ -29,7 +30,7 @@ pub fn template() -> WorkspaceDef {
         .with_top_bar(
             PageTopBar::new()
                 .with_slot(TopBarSlot::left(TopBarSlotKind::Label {
-                    text: "{project.name}".into(),
+                    text: "{project_number} · {project_name}".into(),
                 }))
                 .with_slot(TopBarSlot::right(TopBarSlotKind::FlowDisplay {
                     channel: "project.progress".into(),
@@ -38,22 +39,30 @@ pub fn template() -> WorkspaceDef {
         )
 }
 
-/// Clone the template workspace for one project instance.
-pub fn for_project(project_id: ProjectId, name: &str) -> WorkspaceDef {
+/// Clone the template workspace for one project instance. The tab is labeled
+/// with the project number and name, and its top bar is interpolated so the
+/// literal `{project_number} · {project_name}` never renders.
+pub fn for_project(project_id: ProjectId, number: &str, name: &str) -> WorkspaceDef {
     let mut ws = template();
-    ws.name = format!("Project — {name}");
+    ws.name = format!("{number} · {name}");
     ws.id = WorkspaceId::new();
     ws.seed_key = None;
+    ws.seed_order = 0;
     ws.template_of = Some(ModuleId::new(MODULE_ID_STR));
     ws.binding
         .set(WorkspaceBinding::PROJECT_ID, project_id.0.to_string());
+    ws.binding.set(WorkspaceBinding::PROJECT_NUMBER, number);
+    ws.binding.set(WorkspaceBinding::PROJECT_NAME, name);
     ws.layout.reassign_leaf_ids();
+    if let Some(bar) = ws.top_bar.as_mut() {
+        ses_shell::interpolate_top_bar(bar, &ws.binding);
+    }
     ws
 }
 
-/// Every factory workspace this department seeds at startup.
+/// Template modules seed no factory workspaces — a template is not a tab.
 pub fn all() -> Vec<WorkspaceDef> {
-    vec![template()]
+    Vec::new()
 }
 
 #[cfg(test)]
@@ -78,8 +87,13 @@ mod tests {
     }
 
     #[test]
+    fn all_seeds_no_workspaces() {
+        assert!(all().is_empty());
+    }
+
+    #[test]
     fn workspace_pages_are_in_roster() {
-        for ws in all() {
+        for ws in [template()] {
             let mut descs = Vec::new();
             collect_descriptors(&ws.layout, &mut descs);
             for d in descs {
@@ -100,9 +114,12 @@ mod tests {
         let template_leaves: Vec<LeafId> = tmpl.layout.leaf_ids();
 
         let pid = ProjectId::from_raw(42);
-        let inst = for_project(pid, "Clinic");
+        let inst = for_project(pid, "2026-007", "Clinic");
 
         assert_eq!(inst.binding.get("project_id"), Some("42"));
+        assert_eq!(inst.binding.get("project_number"), Some("2026-007"));
+        assert_eq!(inst.binding.get("project_name"), Some("Clinic"));
+        assert_eq!(inst.name, "2026-007 · Clinic");
         assert!(inst.seed_key.is_none());
         assert_eq!(inst.template_of, Some(ModuleId::new(MODULE_ID_STR)));
         assert_ne!(inst.id, tmpl.id);
@@ -111,6 +128,17 @@ mod tests {
         assert_eq!(inst_leaves.len(), template_leaves.len());
         for (a, b) in inst_leaves.iter().zip(template_leaves.iter()) {
             assert_ne!(a, b);
+        }
+    }
+
+    #[test]
+    fn for_project_interpolates_top_bar_label() {
+        let pid = ProjectId::from_raw(1);
+        let inst = for_project(pid, "2026-007", "Clinic");
+        let bar = inst.top_bar.expect("template has a top bar");
+        match &bar.slots[0].kind {
+            TopBarSlotKind::Label { text } => assert_eq!(text, "2026-007 · Clinic"),
+            other => panic!("expected label, got {other:?}"),
         }
     }
 }

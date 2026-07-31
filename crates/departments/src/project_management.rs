@@ -1,6 +1,8 @@
 pub mod bridge;
 pub mod module;
+pub mod numbering;
 pub mod payloads;
+pub mod portfolio;
 pub mod ui;
 
 /// Stable module id string. Persisted in workspace layouts — treat as a data contract.

@@ -114,6 +114,7 @@ impl DeptStore {
             .execute_mgmt(ProjectMgmtCommand::CreateProject(NewProjectParams {
                 name: "Clinic Addition".into(),
                 number: "2026-001".into(),
+                ..Default::default()
             }))
             .expect("demo seed");
         let pid = *store.projects.keys().next().expect("seeded project");
@@ -200,7 +201,7 @@ impl DeptStore {
             ProjectMgmtCommand::CreateProject(params) => {
                 let id = ProjectId::new();
                 let now = now_utc();
-                let record = ProjectRecord {
+                let mut record = ProjectRecord {
                     id,
                     name: params.name,
                     number: params.number,
@@ -216,6 +217,18 @@ impl DeptStore {
                     engineer_of_record: String::new(),
                     created_utc: now,
                 };
+                if let Some(client) = params.client {
+                    record.client = Client::from_name(client);
+                }
+                if let Some(manager) = params.manager {
+                    record.manager = manager;
+                }
+                if let Some(target_finish_utc) = params.target_finish_utc {
+                    record.target_finish_utc = Some(target_finish_utc);
+                }
+                if let Some(cents) = params.contract_value_cents {
+                    record.contract_value = Some(Money::usd(cents));
+                }
                 let board = BoardConfig::factory(id);
                 board.validate()?;
                 self.projects.insert(id, record);
@@ -272,7 +285,7 @@ impl DeptStore {
                         project_id: params.project_id,
                         revision: 1,
                         scope: params.scope,
-                        fee: Money::usd(0),
+                        fee: Money::usd(params.fee_cents.unwrap_or(0)),
                         schedule_weeks: 0,
                         status: ProposalStatus::Draft,
                         sent_utc: None,
@@ -307,7 +320,7 @@ impl DeptStore {
                     .projects
                     .get(&project_id)
                     .ok_or_else(|| StoreError::NotFound(format!("project {project_id}")))?;
-                let ws = for_project(project_id, &p.name);
+                let ws = for_project(project_id, &p.number, &p.name);
                 Ok(StoreEffect::OpenWorkspace(ws))
             }
         }
@@ -315,9 +328,26 @@ impl DeptStore {
 
     pub fn query_mgmt(&self, q: ProjectMgmtQuery) -> Result<MgmtQueryResult, StoreError> {
         match q {
-            ProjectMgmtQuery::ListAll { filter: _ } => Ok(MgmtQueryResult::Projects(
-                self.projects.values().cloned().collect(),
-            )),
+            ProjectMgmtQuery::ListAll { filter } => {
+                let text = filter.text.as_ref().map(|t| t.to_lowercase());
+                let mut rows: Vec<ProjectRecord> = self
+                    .projects
+                    .values()
+                    .filter(|p| filter.statuses.is_empty() || filter.statuses.contains(&p.status))
+                    .filter(|p| filter.phases.is_empty() || filter.phases.contains(&p.phase))
+                    .filter(|p| match &text {
+                        None => true,
+                        Some(t) => {
+                            p.number.to_lowercase().contains(t.as_str())
+                                || p.name.to_lowercase().contains(t.as_str())
+                                || p.client.name.to_lowercase().contains(t.as_str())
+                        }
+                    })
+                    .cloned()
+                    .collect();
+                rows.sort_by(|a, b| b.number.cmp(&a.number));
+                Ok(MgmtQueryResult::Projects(rows))
+            }
             ProjectMgmtQuery::GetProject(id) => self
                 .projects
                 .get(&id)
@@ -510,7 +540,9 @@ impl DeptStore {
             ProjectCommand::LogTime(NewTimeEntryParams {
                 project_id,
                 task_id,
+                who,
                 minutes,
+                note,
                 billable,
             }) => {
                 self.require_project(project_id)?;
@@ -521,10 +553,10 @@ impl DeptStore {
                         id,
                         project_id,
                         task_id,
-                        who: String::new(),
+                        who,
                         minutes,
                         date_utc: now_utc(),
-                        note: String::new(),
+                        note,
                         billable,
                     },
                 );
@@ -815,12 +847,120 @@ mod tests {
             .execute_mgmt(ProjectMgmtCommand::CreateProject(NewProjectParams {
                 name: "A".into(),
                 number: "1".into(),
+                ..Default::default()
             }))
             .unwrap();
         assert_eq!(store.projects.len(), 1);
         let pid = *store.projects.keys().next().unwrap();
         assert!(store.boards.contains_key(&pid));
         store.boards[&pid].validate().unwrap();
+    }
+
+    #[test]
+    fn list_all_active_filter_excludes_draft_and_archived() {
+        use crate::project_management::bridge::ProjectFilter;
+        let mut store = DeptStore::new();
+        store
+            .execute_mgmt(ProjectMgmtCommand::CreateProject(NewProjectParams {
+                name: "Active".into(),
+                number: "2026-002".into(),
+                ..Default::default()
+            }))
+            .unwrap();
+        store
+            .execute_mgmt(ProjectMgmtCommand::CreateProject(NewProjectParams {
+                name: "Draft".into(),
+                number: "2026-001".into(),
+                ..Default::default()
+            }))
+            .unwrap();
+        let active_id = store
+            .projects
+            .values()
+            .find(|p| p.name == "Active")
+            .map(|p| p.id)
+            .unwrap();
+        store
+            .execute_mgmt(ProjectMgmtCommand::SetStatus {
+                id: active_id,
+                status: ProjectStatus::Active,
+            })
+            .unwrap();
+        store
+            .execute_mgmt(ProjectMgmtCommand::CreateProject(NewProjectParams {
+                name: "Archived".into(),
+                number: "2026-003".into(),
+                ..Default::default()
+            }))
+            .unwrap();
+        let archived_id = store
+            .projects
+            .values()
+            .find(|p| p.name == "Archived")
+            .map(|p| p.id)
+            .unwrap();
+        store
+            .execute_mgmt(ProjectMgmtCommand::ArchiveProject { id: archived_id })
+            .unwrap();
+
+        let MgmtQueryResult::Projects(rows) = store
+            .query_mgmt(ProjectMgmtQuery::ListAll {
+                filter: ProjectFilter::active(),
+            })
+            .unwrap()
+        else {
+            panic!("expected Projects");
+        };
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].name, "Active");
+
+        let MgmtQueryResult::Projects(all) = store
+            .query_mgmt(ProjectMgmtQuery::ListAll {
+                filter: ProjectFilter::default(),
+            })
+            .unwrap()
+        else {
+            panic!("expected Projects");
+        };
+        assert_eq!(all.len(), 3);
+        assert_eq!(all[0].number, "2026-003");
+    }
+
+    #[test]
+    fn list_all_text_matches_number_name_client_case_insensitive() {
+        use crate::project_management::bridge::ProjectFilter;
+        let mut store = DeptStore::new();
+        store
+            .execute_mgmt(ProjectMgmtCommand::CreateProject(NewProjectParams {
+                name: "Clinic Addition".into(),
+                number: "2026-010".into(),
+                client: Some("Example Health".into()),
+                ..Default::default()
+            }))
+            .unwrap();
+        store
+            .execute_mgmt(ProjectMgmtCommand::CreateProject(NewProjectParams {
+                name: "Other".into(),
+                number: "2026-011".into(),
+                ..Default::default()
+            }))
+            .unwrap();
+
+        for needle in ["clinic", "2026-010", "example"] {
+            let MgmtQueryResult::Projects(rows) = store
+                .query_mgmt(ProjectMgmtQuery::ListAll {
+                    filter: ProjectFilter {
+                        text: Some(needle.into()),
+                        ..Default::default()
+                    },
+                })
+                .unwrap()
+            else {
+                panic!("expected Projects");
+            };
+            assert_eq!(rows.len(), 1, "needle `{needle}`");
+            assert_eq!(rows[0].name, "Clinic Addition");
+        }
     }
 
     #[test]

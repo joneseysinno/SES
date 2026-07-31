@@ -20,7 +20,8 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 
 [features]
-default = ["project-management", "project"]
+default = ["home", "project-management", "project"]
+home = []
 project-management = []
 project = []
 accounting = []

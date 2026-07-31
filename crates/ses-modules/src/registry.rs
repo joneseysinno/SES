@@ -22,6 +22,18 @@ pub trait SesModule: Send + Sync {
         Vec::new()
     }
 
+    /// The unbound template this module instantiates per record.
+    /// `Some` iff `is_template()`. Never returned from `factory_workspaces()`.
+    fn template_workspace(&self) -> Option<WorkspaceDef> {
+        None
+    }
+
+    /// Every top-bar `action_id` this module's pages know how to handle.
+    /// Audited against the module's factory workspaces — see tests.
+    fn top_bar_actions(&self) -> &[&'static str] {
+        &[]
+    }
+
     /// Is this department a per-instance template? If true, the shell offers
     /// "Open as workspace" from a record, cloning the template and binding it.
     fn is_template(&self) -> bool {
@@ -113,7 +125,7 @@ impl Default for ModuleRegistry {
 mod tests {
     use super::*;
     use crate::permission::Permission;
-    use ses_shell::{PageDescriptor, PageNode, WorkspaceBinding};
+    use ses_shell::{PageDescriptor, PageNode, TopBarSlotKind, WorkspaceBinding};
 
     struct FakeMod {
         id: ModuleId,
@@ -166,5 +178,45 @@ mod tests {
             .set(WorkspaceBinding::PROJECT_ID, "42");
         let pages = reg.pages_for_workspace(&ws, &user);
         assert_eq!(pages.len(), 2);
+    }
+
+    #[test]
+    fn template_invariant_holds_for_registered_modules() {
+        let reg = ModuleRegistry::with_defaults();
+        for m in reg.modules() {
+            assert_eq!(
+                m.is_template(),
+                m.template_workspace().is_some(),
+                "module {} template invariant",
+                m.id()
+            );
+            if m.is_template() {
+                assert!(
+                    m.factory_workspaces().is_empty(),
+                    "template module {} must seed no factory workspaces",
+                    m.id()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn top_bar_actions_cover_factory_buttons() {
+        let reg = ModuleRegistry::with_defaults();
+        for m in reg.modules() {
+            let declared = m.top_bar_actions();
+            for ws in m.factory_workspaces() {
+                let Some(bar) = ws.top_bar else { continue };
+                for slot in bar.slots {
+                    if let TopBarSlotKind::Button { action_id, .. } = slot.kind {
+                        assert!(
+                            declared.contains(&action_id.as_str()),
+                            "module {} button `{action_id}` missing from top_bar_actions()",
+                            m.id()
+                        );
+                    }
+                }
+            }
+        }
     }
 }

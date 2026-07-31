@@ -1,11 +1,13 @@
 //! Factory workspace seed — not authoritative. User startup profile wins.
 
 use crate::ids::{ModuleId, reset_id_counter};
-use crate::page::{
-    Axis, IoLayout, IoPlacement, PageDescriptor, PageLeaf, PageNode, PageTopBar, TopBarSlot,
-    TopBarSlotKind,
-};
+use crate::page::{PageDescriptor, PageLeaf, PageNode};
 use crate::workspace::{ShellState, WorkspaceDef};
+
+#[cfg(feature = "dev-workspaces")]
+use crate::page::{
+    Axis, IoLayout, IoPlacement, PageTopBar, TopBarSlot, TopBarSlotKind,
+};
 
 fn page(module: &str, page_id: &str) -> PageDescriptor {
     PageDescriptor::new(ModuleId::new(module), page_id)
@@ -15,10 +17,12 @@ fn leaf(module: &str, page_id: &str) -> PageNode {
     PageNode::Leaf(PageLeaf::new(page(module, page_id)))
 }
 
+#[cfg(feature = "dev-workspaces")]
 fn leaf_titled(module: &str, page_id: &str, title: &str) -> PageNode {
     PageNode::Leaf(PageLeaf::new(page(module, page_id).with_title(title)))
 }
 
+#[cfg(feature = "dev-workspaces")]
 fn leaf_with_io(module: &str, page_id: &str, title: &str, io: IoLayout) -> PageNode {
     PageNode::Leaf(PageLeaf::new(page(module, page_id).with_title(title)).with_io(io))
 }
@@ -29,6 +33,7 @@ pub fn blank_workspace() -> WorkspaceDef {
 }
 
 /// Layout workspace: 2×2 grid — View | Outliner / Properties | Calculation
+#[cfg(feature = "dev-workspaces")]
 fn layout_workspace() -> WorkspaceDef {
     let top = PageNode::split(
         Axis::Horizontal,
@@ -52,6 +57,7 @@ fn layout_workspace() -> WorkspaceDef {
 }
 
 /// Analysis: View (wide left) + stacked Inputs / Checks
+#[cfg(feature = "dev-workspaces")]
 fn analysis_workspace() -> WorkspaceDef {
     let inputs = leaf_with_io(
         "analysis",
@@ -77,6 +83,7 @@ fn analysis_workspace() -> WorkspaceDef {
 }
 
 /// Documentation: Outliner + Properties
+#[cfg(feature = "dev-workspaces")]
 fn documentation_workspace() -> WorkspaceDef {
     let root = PageNode::split(
         Axis::Horizontal,
@@ -90,18 +97,33 @@ fn documentation_workspace() -> WorkspaceDef {
 /// Built-in factory workspaces (core UI). Department modules contribute
 /// additional seeds via their `factory_workspaces()` methods.
 pub fn core_factory_workspaces() -> Vec<WorkspaceDef> {
-    vec![
-        layout_workspace(),
-        analysis_workspace(),
-        documentation_workspace(),
-    ]
+    #[cfg(feature = "dev-workspaces")]
+    {
+        vec![
+            layout_workspace(),
+            analysis_workspace(),
+            documentation_workspace(),
+        ]
+    }
+    #[cfg(not(feature = "dev-workspaces"))]
+    {
+        Vec::new()
+    }
 }
 
 /// Seed the default shell state (three workspaces, Layout active).
 /// Prefer [`crate::startup::resolve_startup`] when a user profile exists.
+#[deprecated(note = "use resolve_startup with the module registry")]
 pub fn default_shell() -> ShellState {
     reset_id_counter(1);
-    let workspaces = core_factory_workspaces();
+    let workspaces = {
+        let core = core_factory_workspaces();
+        if core.is_empty() {
+            vec![blank_workspace()]
+        } else {
+            core
+        }
+    };
     let active = workspaces[0].id;
     ShellState {
         workspaces,
@@ -139,7 +161,9 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(feature = "dev-workspaces")]
     fn default_has_three_workspaces() {
+        #[allow(deprecated)]
         let shell = default_shell();
         assert_eq!(shell.workspaces.len(), 3);
         assert_eq!(shell.workspaces[0].name, "Layout");
@@ -153,7 +177,9 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "dev-workspaces")]
     fn analysis_has_inputs_and_checks_pages() {
+        #[allow(deprecated)]
         let shell = default_shell();
         let analysis = &shell.workspaces[1];
         let titles: Vec<_> = analysis
@@ -165,5 +191,15 @@ mod tests {
             .collect();
         assert!(titles.contains(&"Inputs"));
         assert!(titles.contains(&"Checks"));
+    }
+
+    #[test]
+    #[cfg(not(feature = "dev-workspaces"))]
+    fn core_factory_empty_without_feature() {
+        assert!(core_factory_workspaces().is_empty());
+        #[allow(deprecated)]
+        let shell = default_shell();
+        assert_eq!(shell.workspaces.len(), 1);
+        assert_eq!(shell.workspaces[0].name, "Blank");
     }
 }

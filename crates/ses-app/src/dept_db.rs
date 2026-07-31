@@ -23,7 +23,7 @@ pub enum DeptDbError {
     Codec(String),
 }
 
-/// Load department store from disk, or seed a demo project when empty.
+/// Load department store from disk, or seed when empty.
 pub fn load_or_seed_dept_store() -> DeptStore {
     #[cfg(feature = "desktop")]
     {
@@ -33,19 +33,40 @@ pub fn load_or_seed_dept_store() -> DeptStore {
                 store
             }
             Ok(_) => {
-                let store = DeptStore::with_demo_seed();
-                save_dept_store(&store);
-                store
+                #[cfg(feature = "demo-seed")]
+                {
+                    let store = DeptStore::with_demo_seed();
+                    save_dept_store(&store);
+                    store
+                }
+                #[cfg(not(feature = "demo-seed"))]
+                {
+                    DeptStore::empty()
+                }
             }
             Err(e) => {
-                eprintln!("ses: department db unavailable ({e}); using in-memory demo");
-                DeptStore::with_demo_seed()
+                eprintln!("ses: department db unavailable ({e}); using in-memory store");
+                #[cfg(feature = "demo-seed")]
+                {
+                    DeptStore::with_demo_seed()
+                }
+                #[cfg(not(feature = "demo-seed"))]
+                {
+                    DeptStore::empty()
+                }
             }
         }
     }
     #[cfg(not(feature = "desktop"))]
     {
-        DeptStore::with_demo_seed()
+        #[cfg(feature = "demo-seed")]
+        {
+            DeptStore::with_demo_seed()
+        }
+        #[cfg(not(feature = "demo-seed"))]
+        {
+            DeptStore::empty()
+        }
     }
 }
 

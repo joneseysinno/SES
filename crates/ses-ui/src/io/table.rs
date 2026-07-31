@@ -28,7 +28,7 @@ enum SortDir {
 }
 
 #[component]
-pub fn DataTable(def: TableDef) -> Element {
+pub fn DataTable(def: TableDef, #[props(default)] on_row_activate: EventHandler<String>) -> Element {
     let mut sort_col = use_signal(|| None::<usize>);
     let mut sort_dir = use_signal(|| SortDir::Asc);
 
@@ -87,9 +87,16 @@ pub fn DataTable(def: TableDef) -> Element {
             }
             tbody {
                 for row in rows {
-                    tr { key: "{row.id}",
-                        for cell in row.cells.iter() {
-                            td { "{cell}" }
+                    {
+                        let row_id = row.id.clone();
+                        rsx! {
+                            tr {
+                                key: "{row.id}",
+                                ondoubleclick: move |_| on_row_activate.call(row_id.clone()),
+                                for cell in row.cells.iter() {
+                                    td { "{cell}" }
+                                }
+                            }
                         }
                     }
                 }

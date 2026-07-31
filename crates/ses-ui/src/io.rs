@@ -2,6 +2,7 @@
 
 pub mod badge;
 pub mod binding_indicator;
+pub mod chart;
 pub mod date_input;
 pub mod engineer_input;
 pub mod field;
@@ -20,6 +21,7 @@ pub mod timeline;
 
 pub use badge::{Badge, BadgeDef, BadgeTone};
 pub use binding_indicator::BindingIndicator;
+pub use chart::{BarChart, BarChartDef, ChartRow};
 pub use date_input::{DateDef, DateInput};
 pub use engineer_input::EngineerInput;
 pub use field::{EngineerInfo, FieldMeta};
@@ -71,6 +73,7 @@ pub enum IoComponent {
     Timeline(TimelineDef),
     Metric(MetricDef),
     FileList(FileListDef),
+    BarChart(BarChartDef),
 }
 
 /// Render any IO component. Input handlers are no-ops — departments wire actions at a higher layer.
@@ -131,5 +134,11 @@ pub fn render_io(comp: &IoComponent) -> Element {
         IoComponent::Timeline(d) => rsx! { Timeline { def: d.clone() } },
         IoComponent::Metric(d) => rsx! { Metric { def: d.clone() } },
         IoComponent::FileList(d) => rsx! { FileList { def: d.clone() } },
+        IoComponent::BarChart(d) => rsx! {
+            BarChart {
+                def: d.clone(),
+                on_select: move |_| {},
+            }
+        },
     }
 }

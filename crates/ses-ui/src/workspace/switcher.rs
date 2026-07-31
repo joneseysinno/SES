@@ -1,10 +1,12 @@
-use crate::context::use_shell;
+use crate::context::{use_modules, use_shell};
+use crate::workspace::reset_to_factory;
 use dioxus::prelude::*;
-use ses_shell::{PageDescriptor, PageNode, WorkspaceDef, default_shell};
+use ses_shell::{PageDescriptor, PageNode, WorkspaceDef};
 
 #[component]
 pub fn WorkspaceSwitcher() -> Element {
     let mut shell = use_shell();
+    let modules = use_modules();
 
     rsx! {
         button {
@@ -29,7 +31,8 @@ pub fn WorkspaceSwitcher() -> Element {
                     .active()
                     .map(|w| w.name.clone())
                     .unwrap_or_default();
-                *shell.write() = default_shell();
+                let mods = modules.read();
+                *shell.write() = reset_to_factory(&mods);
                 shell.write().status_message = format!("Reset defaults (was {active_name})");
             },
             "↺"

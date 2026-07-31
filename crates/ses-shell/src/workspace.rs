@@ -33,6 +33,8 @@ pub struct WorkspaceBinding {
 
 impl WorkspaceBinding {
     pub const PROJECT_ID: &'static str = "project_id";
+    pub const PROJECT_NUMBER: &'static str = "project_number";
+    pub const PROJECT_NAME: &'static str = "project_name";
 
     pub fn get(&self, key: &str) -> Option<&str> {
         self.values.get(key).map(|s| s.as_str())
@@ -76,6 +78,11 @@ pub struct WorkspaceDef {
     /// User-created workspaces have `None`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seed_key: Option<String>,
+    /// Deterministic factory tab order. Lower sorts first. Ties keep
+    /// registration order. Overridden entirely once the user saves a
+    /// startup profile with an explicit `workspace_order`.
+    #[serde(default)]
+    pub seed_order: i16,
 }
 
 impl WorkspaceDef {
@@ -93,6 +100,7 @@ impl WorkspaceDef {
             user_modified: false,
             template_of: None,
             seed_key: None,
+            seed_order: 0,
         }
     }
 
@@ -113,6 +121,11 @@ impl WorkspaceDef {
 
     pub fn with_seed_key(mut self, key: impl Into<String>) -> Self {
         self.seed_key = Some(key.into());
+        self
+    }
+
+    pub fn with_seed_order(mut self, n: i16) -> Self {
+        self.seed_order = n;
         self
     }
 
@@ -142,23 +155,44 @@ impl WorkspaceDef {
     }
 }
 
+const MAX_PENDING_TOP_BAR_ACTIONS: usize = 64;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ShellState {
     pub workspaces: Vec<WorkspaceDef>,
     pub active_workspace: WorkspaceId,
     pub status_message: String,
-    /// Queued page top-bar action ids (department pages drain these).
+    /// Queued page top-bar action ids keyed by workspace.
+    /// Department pages drain only their own workspace's actions.
     #[serde(default, skip)]
-    pub pending_top_bar_actions: Vec<String>,
+    pub pending_top_bar_actions: Vec<(WorkspaceId, String)>,
 }
 
 impl ShellState {
-    pub fn push_top_bar_action(&mut self, action_id: impl Into<String>) {
-        self.pending_top_bar_actions.push(action_id.into());
+    pub fn push_top_bar_action(&mut self, ws: WorkspaceId, action_id: impl Into<String>) {
+        self.pending_top_bar_actions.push((ws, action_id.into()));
+        while self.pending_top_bar_actions.len() > MAX_PENDING_TOP_BAR_ACTIONS {
+            self.pending_top_bar_actions.remove(0);
+        }
     }
 
-    pub fn take_top_bar_actions(&mut self) -> Vec<String> {
-        std::mem::take(&mut self.pending_top_bar_actions)
+    /// Drain only the actions queued for `ws`. Other workspaces' actions
+    /// survive — a page that is not mounted must not lose its mail.
+    pub fn take_top_bar_actions_for(&mut self, ws: WorkspaceId) -> Vec<String> {
+        let (mine, theirs): (Vec<_>, Vec<_>) =
+            std::mem::take(&mut self.pending_top_bar_actions)
+                .into_iter()
+                .partition(|(id, _)| *id == ws);
+        self.pending_top_bar_actions = theirs;
+        mine.into_iter().map(|(_, a)| a).collect()
+    }
+
+    /// A workspace instantiated from `module` whose binding `key` equals `value`.
+    pub fn find_bound(&self, module: &ModuleId, key: &str, value: &str) -> Option<WorkspaceId> {
+        self.workspaces
+            .iter()
+            .find(|w| w.template_of.as_ref() == Some(module) && w.binding.get(key) == Some(value))
+            .map(|w| w.id)
     }
 
     pub fn active(&self) -> Option<&WorkspaceDef> {
@@ -232,6 +266,7 @@ impl ShellState {
         dup.user_modified = true;
         dup.template_of = current.template_of.clone();
         dup.seed_key = None;
+        dup.seed_order = current.seed_order;
         self.add_workspace(dup);
         true
     }
@@ -352,5 +387,66 @@ mod tests {
         assert!(ws.binding.values.is_empty());
         assert!(!ws.user_modified);
         assert!(ws.seed_key.is_none());
+        assert_eq!(ws.seed_order, 0);
+    }
+
+    #[test]
+    fn action_queue_is_per_workspace() {
+        let a = blank("A");
+        let b = blank("B");
+        let id_a = a.id;
+        let id_b = b.id;
+        let mut s = ShellState {
+            workspaces: vec![a, b],
+            active_workspace: id_a,
+            status_message: String::new(),
+            pending_top_bar_actions: Vec::new(),
+        };
+        s.push_top_bar_action(id_a, "new-project");
+        s.push_top_bar_action(id_b, "new-proposal");
+        assert_eq!(s.take_top_bar_actions_for(id_a), vec!["new-project".to_string()]);
+        assert_eq!(s.take_top_bar_actions_for(id_a), Vec::<String>::new());
+        assert_eq!(s.take_top_bar_actions_for(id_b), vec!["new-proposal".to_string()]);
+    }
+
+    #[test]
+    fn action_queue_caps_at_64_dropping_oldest() {
+        let a = blank("A");
+        let id = a.id;
+        let mut s = ShellState {
+            workspaces: vec![a],
+            active_workspace: id,
+            status_message: String::new(),
+            pending_top_bar_actions: Vec::new(),
+        };
+        for i in 0..70 {
+            s.push_top_bar_action(id, format!("a{i}"));
+        }
+        assert_eq!(s.pending_top_bar_actions.len(), 64);
+        assert_eq!(s.pending_top_bar_actions[0].1, "a6");
+        assert_eq!(s.pending_top_bar_actions[63].1, "a69");
+    }
+
+    #[test]
+    fn find_bound_requires_template_of() {
+        let module = ModuleId::new("project");
+        let mut bound = blank("Bound");
+        bound.template_of = Some(module.clone());
+        bound.binding.set(WorkspaceBinding::PROJECT_ID, "7");
+        let mut unbound = blank("Unbound");
+        unbound.binding.set(WorkspaceBinding::PROJECT_ID, "7");
+        let s = ShellState {
+            workspaces: vec![bound.clone(), unbound],
+            active_workspace: bound.id,
+            status_message: String::new(),
+            pending_top_bar_actions: Vec::new(),
+        };
+        assert_eq!(
+            s.find_bound(&module, WorkspaceBinding::PROJECT_ID, "7"),
+            Some(bound.id)
+        );
+        assert!(s
+            .find_bound(&ModuleId::new("other"), WorkspaceBinding::PROJECT_ID, "7")
+            .is_none());
     }
 }

@@ -42,6 +42,10 @@ impl SesModule for ProjectModule {
         workspace::all()
     }
 
+    fn template_workspace(&self) -> Option<WorkspaceDef> {
+        Some(workspace::template())
+    }
+
     fn is_template(&self) -> bool {
         true
     }
@@ -107,5 +111,13 @@ mod tests {
             );
             assert_eq!(manifest.requires, REQUIRES);
         }
+    }
+
+    #[test]
+    fn template_invariant() {
+        let m = ProjectModule::new();
+        assert!(m.is_template());
+        assert!(m.template_workspace().is_some());
+        assert!(m.factory_workspaces().is_empty());
     }
 }

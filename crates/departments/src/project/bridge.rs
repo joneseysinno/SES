@@ -24,7 +24,9 @@ pub struct TaskPatch {
 pub struct NewTimeEntryParams {
     pub project_id: ProjectId,
     pub task_id: Option<TaskId>,
+    pub who: String,
     pub minutes: crate::shared::Minutes,
+    pub note: String,
     pub billable: bool,
 }
 

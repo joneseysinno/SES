@@ -177,3 +177,112 @@
 .ses-file-list-item:hover {
   background: var(--ses-header);
 }
+
+/* Bar chart */
+.ses-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.ses-chart-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ses-chart-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 28%) 1fr;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ses-chart-row:hover .ses-chart-track {
+  outline: 1px solid var(--ses-border);
+}
+
+.ses-chart-label {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ses-chart-label-main {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ses-chart-label-sub {
+  font-size: 10px;
+  color: var(--ses-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ses-chart-track-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.ses-chart-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ses-chart-gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--ses-border);
+  opacity: 0.7;
+}
+
+.ses-chart-track {
+  position: relative;
+  height: 10px;
+  background: var(--ses-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ses-chart-secondary {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: var(--ses-text-dim);
+  opacity: 0.4;
+}
+
+.ses-chart-primary {
+  position: absolute;
+  inset: 0 auto 0 0;
+  height: 100%;
+  background: var(--ses-accent);
+}
+
+.ses-chart-track.ses-progress-good .ses-chart-primary { background: #55c27a; }
+.ses-chart-track.ses-progress-warn .ses-chart-primary { background: #c2a055; }
+.ses-chart-track.ses-progress-over .ses-chart-primary { background: var(--ses-danger); }
+
+.ses-chart-more,
+.ses-chart-caption,
+.ses-chart-empty {
+  font-size: 11px;
+  color: var(--ses-text-dim);
+}
+

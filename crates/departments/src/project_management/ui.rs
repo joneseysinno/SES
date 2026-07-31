@@ -8,8 +8,8 @@ use ses_ui::{PageCtx, SesModuleUi};
 
 use crate::project_management::MODULE_ID_STR;
 use page::{
-    Page, ProjectBoardPage, ProjectListPage, ProjectMetricsPage, ProjectSummaryPage,
-    ProposalEditorPage,
+    Page, PortfolioOverviewPage, ProjectBoardPage, ProjectListPage, ProjectMetricsPage,
+    ProjectSummaryPage, ProposalEditorPage,
 };
 
 pub struct ProjectManagementUi;
@@ -21,6 +21,7 @@ impl SesModuleUi for ProjectManagementUi {
 
     fn render_page(&self, page_id: &ses_shell::PageId, ctx: &PageCtx) -> Element {
         match Page::from_id(page_id.as_str()) {
+            Some(Page::PortfolioOverview) => rsx! { PortfolioOverviewPage { ctx: ctx.clone() } },
             Some(Page::ProjectBoard) => rsx! { ProjectBoardPage { ctx: ctx.clone() } },
             Some(Page::ProjectList) => rsx! { ProjectListPage { ctx: ctx.clone() } },
             Some(Page::ProjectSummary) => rsx! { ProjectSummaryPage { ctx: ctx.clone() } },

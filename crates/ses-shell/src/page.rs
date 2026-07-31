@@ -344,14 +344,96 @@ impl Default for PageTopBar {
     }
 }
 
+/// Substitute `{key}` in Label slots from the workspace binding.
+/// Unknown keys are left verbatim so authoring mistakes stay visible
+/// instead of silently rendering an empty bar.
+pub fn interpolate_top_bar(bar: &mut PageTopBar, binding: &crate::workspace::WorkspaceBinding) {
+    for slot in &mut bar.slots {
+        if let TopBarSlotKind::Label { text } = &mut slot.kind {
+            *text = interpolate_binding_text(text, binding);
+        }
+    }
+}
+
+fn interpolate_binding_text(input: &str, binding: &crate::workspace::WorkspaceBinding) -> String {
+    let mut out = String::with_capacity(input.len());
+    let mut rest = input;
+    while let Some(start) = rest.find('{') {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + 1..];
+        if let Some(end) = after.find('}') {
+            let key = &after[..end];
+            if let Some(val) = binding.get(key) {
+                out.push_str(val);
+            } else {
+                out.push('{');
+                out.push_str(key);
+                out.push('}');
+            }
+            rest = &after[end + 1..];
+        } else {
+            out.push('{');
+            rest = after;
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 #[cfg(test)]
 mod top_bar_tests {
-    use super::TopBarHeight;
+    use super::{
+        PageTopBar, TopBarHeight, TopBarSlot, TopBarSlotKind, interpolate_top_bar,
+    };
+    use crate::workspace::WorkspaceBinding;
 
     #[test]
     fn top_bar_height_px() {
         assert_eq!(TopBarHeight::Compact.px(), 28);
         assert_eq!(TopBarHeight::Standard.px(), 36);
         assert_eq!(TopBarHeight::Tall.px(), 52);
+    }
+
+    #[test]
+    fn interpolate_known_and_unknown_keys() {
+        let mut bar = PageTopBar::new()
+            .with_slot(TopBarSlot::left(TopBarSlotKind::Label {
+                text: "{project_number} · {project_name}".into(),
+            }))
+            .with_slot(TopBarSlot::right(TopBarSlotKind::Button {
+                label: "Go".into(),
+                action_id: "go".into(),
+            }))
+            .with_slot(TopBarSlot::right(TopBarSlotKind::Label {
+                text: "{missing}".into(),
+            }));
+        let mut binding = WorkspaceBinding::default();
+        binding.set("project_number", "2026-001");
+        binding.set("project_name", "Clinic");
+        interpolate_top_bar(&mut bar, &binding);
+        match &bar.slots[0].kind {
+            TopBarSlotKind::Label { text } => assert_eq!(text, "2026-001 · Clinic"),
+            other => panic!("expected label, got {other:?}"),
+        }
+        match &bar.slots[1].kind {
+            TopBarSlotKind::Button { label, .. } => assert_eq!(label, "Go"),
+            other => panic!("expected button, got {other:?}"),
+        }
+        match &bar.slots[2].kind {
+            TopBarSlotKind::Label { text } => assert_eq!(text, "{missing}"),
+            other => panic!("expected label, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn interpolate_no_binding_leaves_text() {
+        let mut bar = PageTopBar::new().with_slot(TopBarSlot::left(TopBarSlotKind::Label {
+            text: "{project_name}".into(),
+        }));
+        interpolate_top_bar(&mut bar, &WorkspaceBinding::default());
+        match &bar.slots[0].kind {
+            TopBarSlotKind::Label { text } => assert_eq!(text, "{project_name}"),
+            other => panic!("expected label, got {other:?}"),
+        }
     }
 }

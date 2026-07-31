@@ -2,7 +2,7 @@ use crate::project_management::bridge::{
     NewProjectParams, NewProposalParams, ProjectMgmtCommand, ProjectMgmtQuery,
 };
 use crate::project_management::payloads::ProjectPhase;
-use crate::shared::ui::progress_tone;
+use crate::shared::ui::{apply_open_workspace, progress_tone};
 use crate::store::{use_dept_store, MgmtQueryResult, StoreEffect};
 use dioxus::prelude::*;
 use ses_ui::{
@@ -17,7 +17,7 @@ pub fn ProjectBoardPage(ctx: PageCtx) -> Element {
 
     // Drain workspace top-bar actions into store commands.
     {
-        let actions = shell.write().take_top_bar_actions();
+        let actions = shell.write().take_top_bar_actions_for(ctx.workspace_id);
         for action in actions {
             match action.as_str() {
                 "new-project" => {
@@ -26,6 +26,7 @@ pub fn ProjectBoardPage(ctx: PageCtx) -> Element {
                         NewProjectParams {
                             name: format!("New Project {n}"),
                             number: format!("2026-{n:03}"),
+                            ..Default::default()
                         },
                     )) {
                         Ok(_) => shell.write().status_message = "Created project".into(),
@@ -40,6 +41,7 @@ pub fn ProjectBoardPage(ctx: PageCtx) -> Element {
                         NewProjectParams {
                             name: format!("Proposal {n}"),
                             number: format!("P-2026-{n:03}"),
+                            ..Default::default()
                         },
                     ));
                     match create {
@@ -59,6 +61,7 @@ pub fn ProjectBoardPage(ctx: PageCtx) -> Element {
                                 NewProposalParams {
                                     project_id: pid,
                                     scope: String::new(),
+                                    fee_cents: None,
                                 },
                             )) {
                                 Ok(_) => {
@@ -190,8 +193,7 @@ pub fn ProjectBoardPage(ctx: PageCtx) -> Element {
                                 );
                                 match effect {
                                     Ok(StoreEffect::OpenWorkspace(ws)) => {
-                                        shell.write().add_workspace(ws);
-                                        shell.write().status_message = "Opened project workspace".into();
+                                        apply_open_workspace(&mut shell.write(), ws);
                                     }
                                     Ok(_) => {}
                                     Err(e) => {

@@ -219,6 +219,7 @@ pub fn WorkspaceBar() -> Element {
                         } else {
                             button {
                                 class: "{tab_class}",
+                                title: "{name}",
                                 onmounted: move |e| {
                                     let data = e.data();
                                     tab_mounted.write().insert(id, data.clone());

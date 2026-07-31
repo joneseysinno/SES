@@ -1,21 +1,16 @@
 use super::page;
 use crate::project_management::MODULE_ID_STR;
-use ses_shell::{
-    Axis, PageDescriptor, PageNode, PageTopBar, TopBarSlot, TopBarSlotKind, WorkspaceDef,
-};
+use ses_shell::{PageDescriptor, PageNode, PageTopBar, TopBarSlot, TopBarSlotKind, WorkspaceDef};
 
-/// The firm-level Project Management portfolio workspace.
+/// The firm-level Project Management portfolio workspace — one page, two
+/// pods (progress summary + active project list).
 pub fn portfolio() -> WorkspaceDef {
-    let root = PageNode::split(
-        Axis::Horizontal,
-        0.7,
-        PageNode::leaf(PageDescriptor::new(MODULE_ID_STR, page::PROJECT_BOARD)),
-        PageNode::leaf(PageDescriptor::new(MODULE_ID_STR, page::PROJECT_LIST)),
-    );
+    let root = PageNode::leaf(PageDescriptor::new(MODULE_ID_STR, page::PORTFOLIO_OVERVIEW));
 
     WorkspaceDef::new("Project Management", root)
         .for_department(MODULE_ID_STR)
         .with_seed_key("project-mgmt/main")
+        .with_seed_order(crate::seed_order::PROJECT_MANAGEMENT)
         .with_top_bar(
             PageTopBar::new()
                 .with_slot(TopBarSlot::right(TopBarSlotKind::Button {
@@ -52,6 +47,16 @@ mod tests {
     #[test]
     fn portfolio_seed_key_stable() {
         assert_eq!(portfolio().seed_key.as_deref(), Some("project-mgmt/main"));
+    }
+
+    #[test]
+    fn portfolio_seed_order_matches_constant() {
+        assert_eq!(portfolio().seed_order, crate::seed_order::PROJECT_MANAGEMENT);
+    }
+
+    #[test]
+    fn portfolio_is_single_leaf() {
+        assert!(matches!(portfolio().layout, PageNode::Leaf(_)));
     }
 
     #[test]

@@ -40,6 +40,10 @@ impl SesModule for ProjectManagementModule {
         workspace::all()
     }
 
+    fn top_bar_actions(&self) -> &[&'static str] {
+        &["new-project", "new-proposal"]
+    }
+
     fn is_template(&self) -> bool {
         false
     }
@@ -50,6 +54,12 @@ fn mgmt_pages() -> &'static [PageManifest] {
     PAGES
         .get_or_init(|| {
             vec![
+                PageManifest::simple(
+                    page::PORTFOLIO_OVERVIEW,
+                    "Portfolio",
+                    Permission::VIEW,
+                )
+                .with_description("Firm-wide progress summary and active project list"),
                 PageManifest::simple(page::PROJECT_BOARD, "Project Board", Permission::VIEW)
                     .with_description("Kanban with project rollups"),
                 PageManifest::simple(page::PROJECT_LIST, "Project List", Permission::VIEW)
@@ -89,6 +99,23 @@ mod tests {
                 "manifest `{}` missing from ALL",
                 manifest.page_id.as_str()
             );
+        }
+    }
+
+    #[test]
+    fn top_bar_actions_cover_every_factory_button() {
+        let m = ProjectManagementModule::new();
+        let actions = m.top_bar_actions();
+        for ws in m.factory_workspaces() {
+            let Some(bar) = ws.top_bar else { continue };
+            for slot in bar.slots {
+                if let ses_shell::TopBarSlotKind::Button { action_id, .. } = slot.kind {
+                    assert!(
+                        actions.contains(&action_id.as_str()),
+                        "button `{action_id}` not declared in top_bar_actions()"
+                    );
+                }
+            }
         }
     }
 }

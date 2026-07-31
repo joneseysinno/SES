@@ -9,6 +9,10 @@ license.workspace = true
 [lints]
 workspace = true
 
+[features]
+default = []
+dev-workspaces = []
+
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }

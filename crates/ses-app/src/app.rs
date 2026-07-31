@@ -7,7 +7,9 @@ use crate::dept_db::{load_or_seed_dept_store, save_dept_store};
 use departments::{DeptStore, DeptStoreCtx};
 use dioxus::prelude::*;
 use ses_modules::UserContext;
-use ses_shell::{FlowBus, ShellState, StartupProfile, factory_workspaces, resolve_startup};
+use ses_shell::{
+    FlowBus, ShellState, StartupProfile, factory_workspaces, resolve_startup,
+};
 use ses_ui::{
     FlowCtx, ModuleUiRegistry, ModulesCtx, Screen, ShellCtx, StartupCtx, UserCtx,
 };
@@ -34,6 +36,7 @@ const PAGE_TOP_BAR_CSS: &str = ses_style!("page_top_bar.css");
 const POD_STACK_CSS: &str = ses_style!("pod_stack.css");
 const KANBAN_CSS: &str = ses_style!("kanban.css");
 const IO_EXTENDED_CSS: &str = ses_style!("io_extended.css");
+const MODAL_CSS: &str = ses_style!("modal.css");
 
 #[derive(Clone)]
 struct AppInit {
@@ -44,10 +47,29 @@ struct AppInit {
 }
 
 fn app_init() -> AppInit {
+    #[cfg(feature = "dev-stubs")]
     let mut reg = ModuleUiRegistry::with_defaults();
+    #[cfg(not(feature = "dev-stubs"))]
+    let mut reg = ModuleUiRegistry::new(ses_modules::ModuleRegistry::new());
     departments::register_all_ui(&mut reg);
-    let profile = load_startup_profile();
-    let persisted = load_workspaces();
+
+    let mut profile = load_startup_profile();
+    let mut persisted = load_workspaces();
+    if ses_shell::migrate(&mut profile, &mut persisted) {
+        save_startup_profile(&profile);
+        // Persist the cleaned workspace list via a temporary shell snapshot.
+        let cleaned = ShellState {
+            workspaces: persisted.clone(),
+            active_workspace: persisted
+                .first()
+                .map(|w| w.id)
+                .unwrap_or_else(ses_shell::WorkspaceId::new),
+            status_message: "Ready".into(),
+            pending_top_bar_actions: Vec::new(),
+        };
+        save_shell(&cleaned);
+    }
+
     let factory = factory_workspaces(
         &profile.enabled_modules,
         reg.logical.all_factory_workspaces(),
@@ -108,6 +130,7 @@ pub fn App() -> Element {
         style { {POD_STACK_CSS} }
         style { {KANBAN_CSS} }
         style { {IO_EXTENDED_CSS} }
+        style { {MODAL_CSS} }
         Screen {}
     }
 }

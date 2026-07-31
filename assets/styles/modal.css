@@ -1,0 +1,70 @@
+/* Modal overlay */
+
+.ses-modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ses-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--ses-bg) 35%, transparent);
+  backdrop-filter: blur(1px);
+}
+
+.ses-modal {
+  position: relative;
+  z-index: 1;
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  background: var(--ses-bg-raised);
+  border: 1px solid var(--ses-border);
+  border-radius: 4px;
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--ses-bg) 55%, transparent);
+  outline: none;
+}
+
+.ses-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--ses-border);
+}
+
+.ses-modal-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ses-modal-close {
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 8px;
+}
+
+.ses-modal-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ses-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.ses-modal-error {
+  color: var(--ses-danger);
+  font-size: 12px;
+}
